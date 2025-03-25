@@ -1,0 +1,96 @@
+openapi: 3.0.0
+info:
+  title: 'Common HTTP components'
+  description: 'Common HTTP components'
+  version: '0.0.1'
+paths:
+  /:
+    get:
+      summary: 'Placeholder'
+      description: 'Placeholder'
+      responses:
+        '200':
+          description: 'Placeholder'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+        '400':
+          description: 'Placeholder'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_message'
+components:
+  schemas:
+    message:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: 'Example message'
+    error_message:
+      type: object
+      required:
+        - title
+        - detail
+        - status
+        - details
+        - request_id
+      properties:
+        title:
+          type: string
+          example: 'Error'
+        detail:
+          type: string
+          example: 'Example error message'
+        status:
+          type: integer
+          example: 400
+          minimum: 100
+          maximum: 599
+        details:
+          type: array
+        request_id:
+          type: string
+          example: '123456'
+
+  responses:
+    not_found:
+      description: 'Resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    bad_request:
+      description: 'Bad request'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    internal_server_error:
+      description: 'Internal server error'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    unauthorized:
+      description: 'Unauthorized'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    forbidden:
+      description: 'Forbidden'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    conflict:
+      description: 'Conflict'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'

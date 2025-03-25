@@ -1,0 +1,136 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: "Code Approval"
+
+on:
+  merge_group:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types:
+      - opened
+      - reopened
+      - synchronize # source branch updated
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  golang-ci-lint:
+    name: Golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Sets up golang
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: "**/*.sum"
+
+      - name: "Configure git for private modules"
+        env:
+          GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git config --global url."https://x:${GITHUB_API_TOKEN}@github.com".insteadOf "https://github.com"
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
+          args: --verbose --timeout 5m
+
+  code-approval:
+    name: "Code Approval"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: "**/*.sum"
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Verify
+        run: go vet ./...
+
+      - name: Test
+        run: go test -v ./...
+
+  code-generation:
+    name: "Code Generation"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: "**/*.sum"
+
+      - name: Install deps
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
+          args: installdeps
+
+      - name: Run Mage
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
+          args: codegen:cicd
+
+  openapi-lint:
+    name: OpenAPI Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Hide any previous plan comments from the Pull Request to keep things tidy
+      - id: hide_previous_plan
+        name: Hide previous plan
+        if: github.event_name == 'pull_request'
+        uses: kanga333/comment-hider@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          hide_user_name: "github-actions[bot]"
+          hide_reason: "OUTDATED"
+          leave_visible: 0 # leave the last 0 comments visible
+
+      - name: Install IBM OpenAPI Validator
+        run: |
+          npm install -g ibm-openapi-validator
+          npm install @ibm-cloud/openapi-ruleset
+
+      - name: Run Mage
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
+          args: lint:apis
+
+      - name: Upload the report
+        # Run this step on all PR's even if the linting fails
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          # Full file path to the plan output
+          file-path: ${{ github.workspace }}/routes-validator-report.md
+          pr-number: ${{ github.event.pull_request.number }}
+          create-if-not-exists: true
