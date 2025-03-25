@@ -34,7 +34,7 @@ concurrency:
 jobs:
   docker-build:
     name: Build Docker Images
-    runs-on: [ linux, self-hosted, docker ]
+    runs-on: ubuntu-latest
     permissions:
       packages: write
       contents: read
