@@ -43,7 +43,7 @@ jobs:
     name: Build
     if: ${{ !inputs.skip_build }}
     permissions: write-all
-    uses: jacobbrewer1/estateease-go/.github/workflows/ci-docker.yml@main
+    uses: jacobbrewer1/golf-data/.github/workflows/ci-docker.yml@main
     secrets: inherit
     with:
       app: ${{ inputs.app }}

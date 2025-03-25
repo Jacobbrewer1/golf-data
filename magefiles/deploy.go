@@ -58,7 +58,7 @@ func (d Deploy) One(appName, environment string) error {
 		appName,
 		"./charts",
 		"--values",
-		"charts/valueFiles/" + environment + "/estateease-" + appName + ".yaml",
+		"charts/valueFiles/" + environment + "/golf-data-" + appName + ".yaml",
 		"--set",
 	}
 
