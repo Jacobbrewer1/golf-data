@@ -8,6 +8,5 @@ import (
 )
 
 func (s service) GetClubs(l *slog.Logger, r *http.Request, params *api.GetClubsParams) (*api.GetClubsResponse, error) {
-	//TODO implement me
 	panic("implement me")
 }
