@@ -1,6 +1,6 @@
 //go:build mage
 
-package main
+package magefiles
 
 import (
 	"fmt"
