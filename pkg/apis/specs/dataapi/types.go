@@ -23,8 +23,8 @@ type QueryNameParam = string
 
 // GetClubsResponse defines the model for get_clubs_response.
 type GetClubsResponse struct {
-	Items *[]Club `json:"items,omitempty"`
-	Total *int64  `json:"total,omitempty"`
+	Items []Club `json:"items"`
+	Total int64  `json:"total"`
 }
 
 // GetClubsParams defines parameters for GetClubs.
