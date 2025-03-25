@@ -1,6 +1,4 @@
 ARG APP_NAME=app
-ARG COMMIT=unknown
-ARG DATE=unknown
 
 FROM docker.io/golang:alpine as build
 
@@ -9,7 +7,7 @@ ARG APP_NAME
 WORKDIR /build
 
 COPY . /build/
-RUN go build -o application --ldflags '-X utils.gitCommit=${COMMIT} -X main.buildDate=${DATE}' ./cmd/${APP_NAME}
+RUN go build -o application ./cmd/${APP_NAME}
 
 FROM docker.io/ubuntu:latest
 
