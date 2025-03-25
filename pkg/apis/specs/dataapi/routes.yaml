@@ -1,0 +1,97 @@
+openapi: 3.0.0
+info:
+  version: latest
+  title: Golf Data API
+  description: This is the API for the golf data service
+
+servers:
+  - url: https://api.bthree.uk/golf/v1
+    description: Production server
+
+tags:
+  - name: clubs
+    description: Club operations
+  - name: courses
+    description: Course operations
+  - name: holes
+    description: Hole operations
+
+paths:
+  /clubs:
+    get:
+      summary: Get all clubs
+      operationId: getClubs
+      description: Get all clubs
+      tags:
+        - clubs
+      parameters:
+        - $ref: '../../../../vendor/github.com/jacobbrewer1/pagefilter/common/common.yaml#/components/parameters/limit_param'
+        - $ref: '../../../../vendor/github.com/jacobbrewer1/pagefilter/common/common.yaml#/components/parameters/last_value'
+        - $ref: '../../../../vendor/github.com/jacobbrewer1/pagefilter/common/common.yaml#/components/parameters/last_id'
+        - $ref: '../../../../vendor/github.com/jacobbrewer1/pagefilter/common/common.yaml#/components/parameters/offset'
+        - $ref: '../../../../vendor/github.com/jacobbrewer1/pagefilter/common/common.yaml#/components/parameters/sort_by'
+        - $ref: '../../../../vendor/github.com/jacobbrewer1/pagefilter/common/common.yaml#/components/parameters/sort_direction'
+        - $ref: '#/components/parameters/query_name_param'
+      responses:
+        '200':
+          $ref: '#/components/responses/get_clubs_response'
+        '400':
+          $ref: '../../../../vendor/github.com/jacobbrewer1/uhttp/common/common.yaml#/components/responses/bad_request'
+        '500':
+          $ref: '../../../../vendor/github.com/jacobbrewer1/uhttp/common/common.yaml#/components/responses/internal_server_error'
+
+components:
+  parameters:
+    query_name_param:
+      name: name
+      description: The name of the club
+      in: query
+      required: false
+      schema:
+        type: string
+        description: The name of the club to search for
+
+  schemas:
+    club:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Example Golf Club
+        address1:
+          type: string
+          example: 1 Example Street
+        address2:
+          type: string
+          example: Example Town
+        address3:
+          type: string
+          example: Example County
+        city:
+          type: string
+          example: Example City
+        postcode:
+          type: string
+          example: EX1 1MP
+
+  requestBodies: { }
+
+  responses:
+    get_clubs_response:
+      description: Clubs response
+      content:
+        application/json:
+          schema:
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/club'
+              total:
+                type: integer
+                format: int64
+                example: 1

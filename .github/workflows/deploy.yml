@@ -1,0 +1,115 @@
+name: Deploy
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: environment
+        default: 'dev-1'
+        options:
+          - 'dev-1'
+      app:
+        description: 'App to deploy'
+        required: true
+        type: choice
+        options:
+          - 'all'
+          - 'configalert'
+          - 'configpulse'
+          - 'janitor'
+          - 'portal'
+          - 'profiler'
+          - 'vector-config-reconciler'
+      helm-branch:
+        description: 'Helm branch to deploy'
+        required: true
+        type: string
+        default: 'main'
+      skip_build:
+        description: 'Skip build step'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: Build
+    if: ${{ !inputs.skip_build }}
+    permissions: write-all
+    uses: jacobbrewer1/estateease-go/.github/workflows/ci-docker.yml@main
+    secrets: inherit
+    with:
+      app: ${{ inputs.app }}
+
+  deploy:
+    name: Deploy
+    runs-on: [ linux, self-hosted, deploy, kubernetes ]
+    needs: [ build ]
+    if: |
+      always() &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0' # We need all history to get the commit hash
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: "**/*.sum"
+
+      - name: Import secrets
+        id: import-secrets
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: userpass
+          username: ${{ secrets.VAULT_USER }}
+          password: ${{ secrets.VAULT_PASS }}
+          secrets: |
+            ${{ secrets.VAULT_MOUNT }}/data/${{ secrets.VAULT_GITHUB_API_NAME }} ${{ secrets.VAULT_GITHUB_API_KEY }} | GITHUB_TOKEN ;
+            ${{ secrets.VAULT_MOUNT }}/data/${{ secrets.VAULT_KUBE_CONFIG_NAME }} ${{ secrets.VAULT_KUBE_CONFIG_KEY }} | KUBE_CONFIG ;
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.helm-branch }}
+          repository: Jacobbrewer1/supporting-charts
+          path: ./charts
+          token: ${{ steps.import-secrets.outputs.GITHUB_TOKEN }}
+
+      - name: Export Kubernetes config
+        run: |
+          echo "${{ steps.import-secrets.outputs.KUBE_CONFIG }}" > kubeconfig.yaml
+
+      - name: Build Mage command
+        run: |
+          if [ "${{ inputs.app }}" == "all" ]; then
+            echo "mage deploy:all ${{ inputs.environment }}"
+            echo "MAGE_COMMAND=deploy:all ${{ inputs.environment }}" >> $GITHUB_ENV
+          else
+            echo "mage deploy:one ${{ inputs.app }} ${{ inputs.environment }}"
+            echo "MAGE_COMMAND=deploy:one ${{ inputs.app }} ${{ inputs.environment }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.3.0
+
+      - name: Deploy
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
+          args: -v ${{ env.MAGE_COMMAND }}
+        env:
+          KUBECONFIG: kubeconfig.yaml
