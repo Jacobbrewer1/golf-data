@@ -2,8 +2,8 @@ package uhttp
 
 import (
 	"context"
-	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -79,7 +79,7 @@ func GenerateRequestIDToContext(r *http.Request) context.Context {
 func generateRequestID(r *http.Request) string {
 	str := r.Method + r.URL.Path + r.RemoteAddr
 	str += r.Header.Get("User-Agent")
-	str += fmt.Sprintf("%d", time.Now().Unix())
+	str += strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	return uuid.NewSHA1(uuid.New(), []byte(str)).String()
 }

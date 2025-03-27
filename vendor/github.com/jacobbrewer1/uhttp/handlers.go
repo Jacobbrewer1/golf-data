@@ -2,7 +2,6 @@ package uhttp
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 )
 
@@ -11,6 +10,18 @@ var (
 	errMethodNotAllowed = errors.New("method not allowed")
 	errUnauthorized     = errors.New("unauthorized")
 )
+
+// WrapHandler wraps the handler with the specified middlewares, making the execution order the inverse of the parameter declaration.
+func WrapHandler(handler http.HandlerFunc, middlewares ...MiddlewareFunc) http.Handler {
+	var wrappedHandler http.Handler = handler
+	for _, middleware := range middlewares {
+		if middleware == nil {
+			continue
+		}
+		wrappedHandler = middleware(wrappedHandler)
+	}
+	return wrappedHandler
+}
 
 // NotFoundHandler returns a handler that returns a 404 response.
 func NotFoundHandler() http.HandlerFunc {
@@ -25,19 +36,19 @@ func NotFoundHandler() http.HandlerFunc {
 		}
 
 		details := []any{
-			fmt.Sprintf("method: %s", r.Method),
-			fmt.Sprintf("path: %s", r.URL.Path),
+			"method: " + r.Method,
+			"path: " + r.URL.Path,
 		}
 
 		if r.URL.RawQuery != "" {
-			details = append(details, fmt.Sprintf("query: %s", r.URL.RawQuery))
+			details = append(details, "query: "+r.URL.RawQuery)
 		}
 
 		msg := NewHTTPError(http.StatusNotFound, errNotFound, details...)
 
 		// Is there a request ID in the context?
 		reqId := RequestIDFromContext(r.Context())
-		if reqId != "" {
+		if reqId == "" {
 			reqId = RequestIDFromContext(GenerateRequestIDToContext(r))
 		}
 
@@ -59,16 +70,16 @@ func MethodNotAllowedHandler() http.HandlerFunc {
 			)
 		}
 
-		details := []string{
-			fmt.Sprintf("method: %s", r.Method),
-			fmt.Sprintf("path: %s", r.URL.Path),
+		details := []any{
+			"method: " + r.Method,
+			"path: " + r.URL.Path,
 		}
 
 		if r.URL.RawQuery != "" {
-			details = append(details, fmt.Sprintf("query: %s", r.URL.RawQuery))
+			details = append(details, "query: "+r.URL.RawQuery)
 		}
 
-		msg := NewHTTPError(http.StatusMethodNotAllowed, errMethodNotAllowed, details)
+		msg := NewHTTPError(http.StatusMethodNotAllowed, errMethodNotAllowed, details...)
 
 		// Is there a request ID in the context?
 		reqId := RequestIDFromContext(r.Context())
@@ -94,16 +105,16 @@ func UnauthorizedHandler() http.HandlerFunc {
 			)
 		}
 
-		details := []string{
-			fmt.Sprintf("method: %s", r.Method),
-			fmt.Sprintf("path: %s", r.URL.Path),
+		details := []any{
+			"method: " + r.Method,
+			"path: " + r.URL.Path,
 		}
 
 		if r.URL.RawQuery != "" {
-			details = append(details, fmt.Sprintf("query: %s", r.URL.RawQuery))
+			details = append(details, "query: "+r.URL.RawQuery)
 		}
 
-		msg := NewHTTPError(http.StatusUnauthorized, errUnauthorized, details)
+		msg := NewHTTPError(http.StatusUnauthorized, errUnauthorized, details...)
 
 		// Is there a request ID in the context?
 		reqId := RequestIDFromContext(r.Context())

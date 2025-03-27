@@ -4,13 +4,16 @@ go 1.24
 
 require (
 	github.com/gorilla/mux v1.8.1
+	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/vault/api v1.16.0
+	github.com/jacobbrewer1/goredis v0.1.7
 	github.com/jacobbrewer1/goschema v0.0.26
 	github.com/jacobbrewer1/pagefilter v0.1.8
 	github.com/jacobbrewer1/patcher v0.1.21
-	github.com/jacobbrewer1/uhttp v0.0.11
+	github.com/jacobbrewer1/uhttp v0.0.12
 	github.com/jacobbrewer1/utils v0.0.1
 	github.com/jacobbrewer1/web v0.0.2-0.20250325095012-c596a2f7354f
+	github.com/jacobbrewer1/workerpool v0.0.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/magefile/mage v1.15.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
@@ -51,7 +54,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.6 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
@@ -64,9 +66,7 @@ require (
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
-	github.com/jacobbrewer1/goredis v0.1.7 // indirect
 	github.com/jacobbrewer1/vaulty v0.1.10 // indirect
-	github.com/jacobbrewer1/workerpool v0.0.4 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -112,7 +112,7 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	golang.org/x/time v0.10.0 // indirect
+	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.1 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect

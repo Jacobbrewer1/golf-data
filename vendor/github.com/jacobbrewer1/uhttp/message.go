@@ -9,26 +9,35 @@ import (
 )
 
 // NewMessage creates a new Message.
-func NewMessage(message string, args ...any) *common.Message {
-	var msg string
-	if len(args) > 0 {
-		msg = fmt.Sprintf(message, args...)
-	} else {
-		msg = message
-	}
+func NewMessage(message string) *common.Message {
 	return &common.Message{
-		Message: msg,
+		Message: message,
 	}
 }
 
-func SendMessageWithStatus(w http.ResponseWriter, status int, message string, args ...any) {
-	msg := NewMessage(message, args...)
-	err := EncodeJSON(w, status, msg)
-	if err != nil {
-		slog.Error("Error encoding message", slog.String(loggingKeyError, err.Error()))
+func MustSendMessageWithStatus(w http.ResponseWriter, status int, message string) {
+	if err := SendMessageWithStatus(w, status, message); err != nil {
+		slog.Error("Failed to send message", slog.String(loggingKeyError, err.Error()))
 	}
 }
 
-func SendMessage(w http.ResponseWriter, message string, args ...any) {
-	SendMessageWithStatus(w, http.StatusOK, message, args...)
+func SendMessageWithStatus(w http.ResponseWriter, status int, message string) error {
+	msg := NewMessage(message)
+	if err := EncodeJSON(w, status, msg); err != nil {
+		return fmt.Errorf("failed to encode message: %w", err)
+	}
+	return nil
+}
+
+func MustSendMessage(w http.ResponseWriter, message string) {
+	if err := SendMessage(w, message); err != nil {
+		slog.Error("Failed to send message", slog.String(loggingKeyError, err.Error()))
+	}
+}
+
+func SendMessage(w http.ResponseWriter, message string) error {
+	if err := SendMessageWithStatus(w, http.StatusOK, message); err != nil {
+		return fmt.Errorf("failed to send message: %w", err)
+	}
+	return nil
 }
