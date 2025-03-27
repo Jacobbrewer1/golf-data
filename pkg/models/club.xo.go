@@ -253,6 +253,26 @@ func (m *Club) Patch(db DB, newT *Club) error {
 	return nil
 }
 
+// ClubByName retrieves a row from 'club' as a *Club.
+//
+// Generated from index ” of type 'unique'.
+func ClubByName(db DB, name string) (*Club, error) {
+	t := prometheus.NewTimer(DatabaseLatency.WithLabelValues("get_" + ClubTableName + "_by_name"))
+	defer t.ObserveDuration()
+
+	const sqlstr = "SELECT `id`, `name`, `address1`, `address2`, `address3`, `address4`, `postal_code` " +
+		"FROM club " +
+		"WHERE `name` = ?"
+
+	DBLog(sqlstr, name)
+	var m Club
+	if err := db.Get(&m, sqlstr, name); err != nil {
+		return nil, err
+	}
+
+	return &m, nil
+}
+
 // GetAllClubs retrieves all rows from 'club' as a slice of Club.
 //
 // Generated from table 'club'.

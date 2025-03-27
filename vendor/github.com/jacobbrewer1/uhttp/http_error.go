@@ -16,6 +16,9 @@ type HTTPError struct {
 }
 
 func (e *HTTPError) Error() string {
+	if e.error == nil {
+		return e.Title
+	}
 	return e.error.Error()
 }
 

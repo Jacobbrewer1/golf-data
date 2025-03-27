@@ -5,16 +5,6 @@ import (
 	"net/http"
 )
 
-const (
-	// authHeader is the Authorization header in a HTTP request.
-	authHeader = "Authorization"
-)
-
-var (
-	// authHeaderKey is the context key to the value of the Authorization HTTP request.
-	authHeaderKey = ContextKey(authHeader)
-)
-
 // AuthHeaderToContext copies the Authorization HTTP header into the provided context.
 func AuthHeaderToContext(ctx context.Context, r *http.Request) context.Context {
 	return AuthToContext(ctx, r.Header.Get(authHeader))
@@ -69,7 +59,7 @@ func IsProxied(r *http.Request) bool {
 func InternalOnly(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !IsInternal(r) {
-			SendMessageWithStatus(w, http.StatusForbidden, "Forbidden")
+			NotFoundHandler().ServeHTTP(w, r)
 			return
 		}
 		next.ServeHTTP(w, r)
