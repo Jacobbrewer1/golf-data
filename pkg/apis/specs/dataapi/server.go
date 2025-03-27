@@ -11,6 +11,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/jacobbrewer1/uhttp"
@@ -34,31 +35,32 @@ const (
 )
 
 var (
-	// TotalRequests is a counter for the total number of requests by ALL operations.
-	TotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "total_requests",
-		Help: "Total number of requests",
-	}, []string{"code", "method"})
+	// httpTotalRequests is the total number of http requests.
+	httpTotalRequests = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of http requests",
+		},
+		[]string{"path", "method", "status_code"},
+	)
 
-	// GetClubsTotalRequests is a counter for the total number of requests for GetClubs.
-	GetClubsTotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "getclubs_total_requests",
-		Help: "Total number of requests for GetClubs",
-	}, []string{"code", "method"})
+	// httpRequestDuration is the duration of the http request.
+	httpRequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "http_request_duration_seconds",
+			Help: "Duration of the http request",
+		},
+		[]string{"path", "method", "status_code"},
+	)
 
-	// GetClubsRequestDuration is a histogram for the request duration for GetClubs.
-	GetClubsRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "getclubs_request_duration_seconds",
-		Help:    "Request duration in seconds for GetClubs",
-		Buckets: prometheus.DefBuckets,
-	}, []string{"code", "method"})
-
-	// GetClubsResponseSize is a histogram for the response size for GetClubs.
-	GetClubsResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "getclubs_response_size_bytes",
-		Help:    "Response size in bytes for GetClubs",
-		Buckets: prometheus.DefBuckets,
-	}, []string{"code", "method"})
+	// httpRequestSize is the size of the http request.
+	httpRequestSize = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "http_request_size",
+			Help: "Size of the http request",
+		},
+		[]string{"path", "method", "status_code"},
+	)
 )
 
 type RateLimiterFunc = func(http.ResponseWriter, context.Context) error
@@ -127,6 +129,25 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
 		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
 	)
+
+	defer func() {
+		path := ""
+		route := mux.CurrentRoute(r)
+		if route != nil { // The route may be nil if the request is not routed.
+			var err error
+			path, err = route.GetPathTemplate()
+			if err != nil {
+				// An error here is only returned if the route does not define a path.
+				l.Error("Error getting path template", slog.String(logging.KeyError, err.Error()))
+				path = r.URL.Path // If the route does not define a path, use the URL path.
+			}
+		} else {
+			path = r.URL.Path // If the route is nil, use the URL path.
+		}
+		httpTotalRequests.WithLabelValues(path, r.Method, strconv.Itoa(cw.StatusCode())).Inc()
+		httpRequestDuration.WithLabelValues(path, r.Method, strconv.Itoa(cw.StatusCode())).Observe(cw.GetRequestDuration().Seconds())
+		httpRequestSize.WithLabelValues(path, r.Method, strconv.Itoa(cw.StatusCode())).Observe(float64(r.ContentLength))
+	}()
 
 	// Parameter object where we will unmarshal all parameters from the context
 	params := new(GetClubsParams)
@@ -442,6 +463,19 @@ func (e *TooManyValuesForParamError) Error() string {
 	return fmt.Sprintf("Expected one value for %s, got %d", e.ParamName, e.Count)
 }
 
+// wrapHandler will wrap the handler with middlewares in the other specified
+// making the execution order the inverse of the parameter declaration
+func wrapHandler(handler http.HandlerFunc, middlewares ...mux.MiddlewareFunc) http.Handler {
+	var wrappedHandler http.Handler = handler
+	for _, middleware := range middlewares {
+		if middleware == nil {
+			continue
+		}
+		wrappedHandler = middleware(wrappedHandler)
+	}
+	return wrappedHandler
+}
+
 // RegisterUnauthedHandlers registers any api handlers which do not have any authentication on them. Most services will not have any.
 func RegisterUnauthedHandlers(router *mux.Router, si ServerInterface, opts ...ServerOption) {
 	wrapper := ServerInterfaceWrapper{
@@ -462,14 +496,5 @@ func RegisterUnauthedHandlers(router *mux.Router, si ServerInterface, opts ...Se
 	router.Use(uhttp.AuthHeaderToContextMux())
 	router.Use(uhttp.GenerateOrCopyRequestIDMux())
 
-	router.Methods(http.MethodGet).
-		Path("/clubs").
-		Handler(uhttp.WrapHandler(
-			wrapper.GetClubs,
-			uhttp.InstrumentCounter(TotalRequests),
-			uhttp.InstrumentCounter(GetClubsTotalRequests),
-			uhttp.InstrumentDuration(GetClubsRequestDuration),
-			uhttp.InstrumentResponseSize(GetClubsResponseSize),
-		))
-
+	router.Methods(http.MethodGet).Path("/clubs").Handler(wrapHandler(wrapper.GetClubs))
 }
