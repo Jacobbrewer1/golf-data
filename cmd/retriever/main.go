@@ -29,7 +29,7 @@ func main() {
 		web.WithRedisPool(),
 		web.WithWorkerPool(),
 		web.WithLeaderElection(appName),
-		web.WithIndefiniteAsyncTask("clubs-fetcher", clubsTask(l, a.RedisPool, a.WorkerPool)),
+		web.WithIndefiniteAsyncTask("clubs-fetcher", clubsTask(l, a.RedisPool, a.WorkerPool, a.IsLeader, a.LeaderChange())),
 	); err != nil {
 		l.Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
