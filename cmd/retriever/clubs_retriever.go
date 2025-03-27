@@ -24,7 +24,13 @@ const (
 	clubSearchURL = "https://www.englandgolf.org/api/clubs/ClubSearch"
 )
 
-func clubsTask(l *slog.Logger, keydb func() goredis.Pool, wp func() workerpool.Pool) web.AsyncTaskFunc {
+func clubsTask(
+	l *slog.Logger,
+	keydb func() goredis.Pool,
+	wp func() workerpool.Pool,
+	isLeader func() bool,
+	leaderChange <-chan struct{},
+) web.AsyncTaskFunc {
 	return func(ctx context.Context) error {
 		// Pick a random time between 15 - 60 minutes to run the task
 		intervalNum, err := rand.Int(rand.Reader, big.NewInt(45))
@@ -35,16 +41,29 @@ func clubsTask(l *slog.Logger, keydb func() goredis.Pool, wp func() workerpool.P
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		l.Info("ticker started", slog.String(logKeys.KeyInterval, interval.String()))
-
 		for {
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-ticker.C:
-				l.Debug("ticker ticked")
-				if err := clubWorker(ctx, l, keydb(), wp()); err != nil {
-					return fmt.Errorf("failed to run club worker: %w", err)
+			case <-leaderChange:
+				if !isLeader() {
+					l.Info("not leader, waiting for leader change")
+					continue
+				}
+
+				l.Info("ticker started", slog.String(logKeys.KeyInterval, interval.String()))
+
+				for {
+					select {
+					case <-ctx.Done():
+						return nil
+					case <-ticker.C:
+						l.Debug("ticker ticked")
+						if err := clubWorker(ctx, l, keydb(), wp()); err != nil {
+							l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+							continue
+						}
+					}
 				}
 			}
 		}
