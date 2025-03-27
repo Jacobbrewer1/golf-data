@@ -3,15 +3,17 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"math/rand"
+	"math/big"
 	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/jacobbrewer1/golf-data/cmd/retriever/runnables"
+	logKeys "github.com/jacobbrewer1/golf-data/pkg/logging"
 	"github.com/jacobbrewer1/goredis"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/logging"
@@ -25,11 +27,15 @@ const (
 func clubsTask(l *slog.Logger, keydb func() goredis.Pool, wp func() workerpool.Pool) web.AsyncTaskFunc {
 	return func(ctx context.Context) error {
 		// Pick a random time between 15 - 60 minutes to run the task
-		interval := time.Duration(rand.Intn(45)+15) * time.Minute
+		intervalNum, err := rand.Int(rand.Reader, big.NewInt(45))
+		if err != nil {
+			return fmt.Errorf("failed to generate random interval: %w", err)
+		}
+		interval := time.Duration(intervalNum.Int64()+15) * time.Minute
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		l.Info("ticker started", slog.String("interval", interval.String()))
+		l.Info("ticker started", slog.String(logKeys.KeyInterval, interval.String()))
 
 		for {
 			select {
@@ -70,7 +76,7 @@ func clubWorker(
 			for _, club := range clubs {
 				dbClub := club.ToModel()
 				runnable := runnables.NewClubToKeyDB(ctx, l, keydb, dbClub)
-				if err := wp.BlockingSchedule(runnable); err != nil {
+				if err := wp.BlockingSchedule(runnable); err != nil { // nolint:revive // Traditional error handling
 					l.Error("failed to schedule club runnable", slog.String(logging.KeyError, err.Error()))
 					return fmt.Errorf("failed to schedule club runnable: %w", err)
 				}

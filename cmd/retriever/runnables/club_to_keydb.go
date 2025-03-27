@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
+	logKeys "github.com/jacobbrewer1/golf-data/pkg/logging"
 	"github.com/jacobbrewer1/golf-data/pkg/models"
 	"github.com/jacobbrewer1/goredis"
 	"github.com/jacobbrewer1/web/logging"
@@ -35,7 +36,7 @@ func NewClubToKeyDB(
 
 func (c *clubToKeyDB) Run() {
 	listItem := bytes.NewBuffer(nil)
-	if err := json.NewEncoder(listItem).Encode(c.club); err != nil {
+	if err := json.NewEncoder(listItem).Encode(c.club); err != nil { // nolint:musttag // This is internal only
 		c.l.Error("failed to encode club", slog.String(logging.KeyError, err.Error()))
 		return
 	}
@@ -45,5 +46,5 @@ func (c *clubToKeyDB) Run() {
 		return
 	}
 
-	c.l.Info("club inserted to keydb", slog.Int("club_id", c.club.Id))
+	c.l.Info("club inserted to keydb", slog.Int(logKeys.KeyClubId, c.club.Id))
 }
