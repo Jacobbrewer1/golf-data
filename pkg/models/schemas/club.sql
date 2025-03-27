@@ -7,6 +7,7 @@ create table club
     address3    varchar(255) not null,
     address4    varchar(255) not null,
     postal_code varchar(8)   not null,
-    primary key (id)
+    primary key (id),
+    unique (name)
 );
 
