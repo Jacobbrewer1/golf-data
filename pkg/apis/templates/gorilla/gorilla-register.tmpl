@@ -1,16 +1,3 @@
-// wrapHandler will wrap the handler with middlewares in the other specified
-// making the execution order the inverse of the parameter declaration
-func wrapHandler(handler http.HandlerFunc, middlewares ...mux.MiddlewareFunc) http.Handler {
-	var wrappedHandler http.Handler = handler
-	for _, middleware := range middlewares {
-	    if middleware == nil {
-            continue
-        }
-		wrappedHandler = middleware(wrappedHandler)
-	}
-	return wrappedHandler
-}
-
 {{ $authedExists := false }}
 {{ $unauthedExists := false }}
 {{ range . }}
@@ -42,12 +29,23 @@ func RegisterHandlers(router *mux.Router, si ServerInterface, opts ...ServerOpti
     router.Use(uhttp.AuthHeaderToContextMux())
     router.Use(uhttp.GenerateOrCopyRequestIDMux())
 
-{{ range . }}
-    {{- $authed := .Spec.Security }}
-    {{- if $authed }}
-        router.Methods(http.Method{{.Method | lower | title }}).Path("{{.Path}}").Handler(wrapHandler(wrapper.{{.OperationId}}))
+    {{ range . }}
+        {{- $authed := .Spec.Security }}
+        {{- if $authed }}
+            router.Methods(http.Method{{.Method | lower | title }}).
+            Path("{{.Path | swaggerUriToGorillaUri}}").
+            Handler(uhttp.WrapHandler(
+                wrapper.{{.OperationId}},
+                uhttp.InstrumentCounter(TotalRequests),
+                uhttp.InstrumentCounter({{.OperationId}}TotalRequests),
+                uhttp.InstrumentDuration({{.OperationId}}RequestDuration),
+                {{ if ne .Method "GET" -}}
+                    uhttp.InstrumentRequestSize({{.OperationId}}RequestSize),
+                {{ end -}}
+                uhttp.InstrumentResponseSize({{.OperationId}}ResponseSize),
+            ))
+        {{ end }}
     {{ end -}}
-{{ end -}}
 }
 {{ end }}
 
@@ -75,8 +73,19 @@ func RegisterUnauthedHandlers(router *mux.Router, si ServerInterface, opts ...Se
     {{ range . }}
         {{- $unauth := not .Spec.Security }}
         {{- if $unauth }}
-            router.Methods(http.Method{{.Method | lower | title }}).Path("{{.Path | swaggerUriToGorillaUri}}").Handler(wrapHandler(wrapper.{{.OperationId}}))
-        {{- end -}}
+            router.Methods(http.Method{{.Method | lower | title }}).
+            Path("{{.Path | swaggerUriToGorillaUri}}").
+            Handler(uhttp.WrapHandler(
+                wrapper.{{.OperationId}},
+                uhttp.InstrumentCounter(TotalRequests),
+                uhttp.InstrumentCounter({{.OperationId}}TotalRequests),
+                uhttp.InstrumentDuration({{.OperationId}}RequestDuration),
+                {{ if ne .Method "GET" -}}
+                    uhttp.InstrumentRequestSize({{.OperationId}}RequestSize),
+                {{ end -}}
+                uhttp.InstrumentResponseSize({{.OperationId}}ResponseSize),
+            ))
+        {{ end }}
     {{ end -}}
 }
 {{ end -}}

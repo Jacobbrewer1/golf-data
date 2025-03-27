@@ -3,32 +3,42 @@ const (
 )
 
 var (
-	// httpTotalRequests is the total number of http requests.
-	httpTotalRequests = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name:      "http_requests_total",
-			Help:      "Total number of http requests",
-		},
-		[]string{"path", "method", "status_code"},
-	)
+    // TotalRequests is a counter for the total number of requests by ALL operations.
+    TotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+        Name: "total_requests",
+        Help: "Total number of requests",
+    }, []string{"code", "method"})
 
-	// httpRequestDuration is the duration of the http request.
-	httpRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:      "http_request_duration_seconds",
-			Help:      "Duration of the http request",
-		},
-		[]string{"path", "method", "status_code"},
-	)
+    {{ range . }}{{$opid := .OperationId}}
+    // {{$opid}}TotalRequests is a counter for the total number of requests for {{$opid}}.
+    {{ $opid }}TotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+        Name: "{{ $opid | lower }}_total_requests",
+        Help: "Total number of requests for {{ $opid }}",
+    }, []string{"code", "method"})
 
-	// httpRequestSize is the size of the http request.
-	httpRequestSize = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:      "http_request_size",
-			Help:      "Size of the http request",
-		},
-		[]string{"path", "method", "status_code"},
-	)
+    // {{$opid}}RequestDuration is a histogram for the request duration for {{$opid}}.
+    {{ $opid }}RequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+        Name:    "{{ $opid | lower }}_request_duration_seconds",
+        Help:    "Request duration in seconds for {{ $opid }}",
+        Buckets: prometheus.DefBuckets,
+    }, []string{"code", "method"})
+
+    {{ if ne .Method "GET" -}}
+    // {{$opid}}RequestSize is a histogram for the request size for {{$opid}}.
+    {{ $opid }}RequestSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+        Name:    "{{ $opid | lower }}_request_size_bytes",
+        Help:    "Request size in bytes for {{ $opid }}",
+        Buckets: prometheus.DefBuckets,
+    }, []string{"code", "method"})
+    {{ end }}
+
+    // {{$opid}}ResponseSize is a histogram for the response size for {{$opid}}.
+    {{ $opid }}ResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+        Name:    "{{ $opid | lower }}_response_size_bytes",
+        Help:    "Response size in bytes for {{ $opid }}",
+        Buckets: prometheus.DefBuckets,
+    }, []string{"code", "method"})
+    {{ end }}
 )
 
 type RateLimiterFunc = func(http.ResponseWriter, context.Context) error
@@ -105,25 +115,6 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Requ
     uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
     uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
   )
-
-  defer func() {
-  	path := ""
-  	route := mux.CurrentRoute(r)
-  	if route != nil { // The route may be nil if the request is not routed.
-  		var err error
-  		path, err = route.GetPathTemplate()
-  		if err != nil {
-  			// An error here is only returned if the route does not define a path.
-  			l.Error("Error getting path template", slog.String(logging.KeyError, err.Error()))
-  			path = r.URL.Path // If the route does not define a path, use the URL path.
-  		}
-  	} else {
-  		path = r.URL.Path // If the route is nil, use the URL path.
-  	}
-    httpTotalRequests.WithLabelValues(path, r.Method, strconv.Itoa(cw.StatusCode())).Inc()
-    httpRequestDuration.WithLabelValues(path, r.Method, strconv.Itoa(cw.StatusCode())).Observe(cw.GetRequestDuration().Seconds())
-    httpRequestSize.WithLabelValues(path, r.Method, strconv.Itoa(cw.StatusCode())).Observe(float64(r.ContentLength))
-  }()
 
   {{range .PathParams}}// ------------- Path parameter "{{.ParamName}}" -------------
   var {{$varName := .GoVariableName}}{{$varName}} {{.TypeDef}}
