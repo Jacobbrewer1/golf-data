@@ -21,12 +21,8 @@ on:
         type: choice
         options:
           - 'all'
-          - 'configalert'
-          - 'configpulse'
-          - 'janitor'
-          - 'portal'
-          - 'profiler'
-          - 'vector-config-reconciler'
+          - 'data-api'
+          - 'retriever'
       helm-branch:
         description: 'Helm branch to deploy'
         required: true
