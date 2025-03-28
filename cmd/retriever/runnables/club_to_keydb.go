@@ -41,7 +41,7 @@ func (c *clubToKeyDB) Run() {
 		return
 	}
 
-	if _, err := c.keydb.DoCtx(c.ctx, "RPUSH", "eg_clubs", listItem.String()); err != nil {
+	if _, err := c.keydb.DoCtx(c.ctx, "RPUSH", "eg:clubs", listItem.String()); err != nil {
 		c.l.Error("failed to insert club to keydb", slog.String(logging.KeyError, err.Error()))
 		return
 	}
