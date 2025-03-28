@@ -42,7 +42,7 @@ func (p *processor) Clubs(ctx context.Context) error {
 
 func (p *processor) processClub(clubReader io.Reader) error {
 	club := new(models.Club)
-	if err := json.NewDecoder(clubReader).Decode(club); err != nil {
+	if err := json.NewDecoder(clubReader).Decode(club); err != nil { // nolint:musttag // This is internal only
 		return fmt.Errorf("failed to decode club: %w", err)
 	}
 
@@ -63,7 +63,7 @@ func (p *processor) processClub(clubReader io.Reader) error {
 
 func (p *processor) republishClub(club *models.Club) error {
 	clubBytes := bytes.NewBuffer(nil)
-	if err := json.NewEncoder(clubBytes).Encode(club); err != nil {
+	if err := json.NewEncoder(clubBytes).Encode(club); err != nil { // nolint:musttag // This is internal only
 		return fmt.Errorf("failed to encode club: %w", err)
 	}
 
