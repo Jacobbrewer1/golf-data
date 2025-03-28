@@ -108,6 +108,7 @@ func clubWorker(
 
 func getEnglandGolfClubs(ctx context.Context, l *slog.Logger, pageNum int) ([]*EnglandGolfClubResponse, error) {
 	retryClient := retryablehttp.NewClient()
+	retryClient.Logger = logging.LoggerWithComponent(l, "retryablehttp")
 	retryClient.RetryMax = 3
 	client := retryClient.StandardClient()
 
