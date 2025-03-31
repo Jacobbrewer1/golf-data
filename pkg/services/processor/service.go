@@ -5,8 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor/domain"
-	"github.com/jacobbrewer1/goredis"
-	"github.com/jacobbrewer1/web/cache"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 type Processor interface {
@@ -14,17 +13,15 @@ type Processor interface {
 }
 
 type processor struct {
-	l      *slog.Logger
-	bucket cache.HashBucket
-	dom    domain.Domain
-	keydb  goredis.Pool
+	l             *slog.Logger
+	dom           domain.Domain
+	clubsConsumer jetstream.Consumer
 }
 
-func NewProcessor(l *slog.Logger, bucket cache.HashBucket, d domain.Domain, keydb goredis.Pool) Processor {
+func NewProcessor(l *slog.Logger, d domain.Domain, clubsConsumer jetstream.Consumer) Processor {
 	return &processor{
-		l:      l,
-		bucket: bucket,
-		dom:    d,
-		keydb:  keydb,
+		l:             l,
+		dom:           d,
+		clubsConsumer: clubsConsumer,
 	}
 }

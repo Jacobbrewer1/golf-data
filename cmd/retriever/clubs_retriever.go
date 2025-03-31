@@ -9,36 +9,32 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/jacobbrewer1/golf-data/cmd/retriever/runnables"
 	logKeys "github.com/jacobbrewer1/golf-data/pkg/logging"
-	"github.com/jacobbrewer1/goredis"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/jacobbrewer1/workerpool"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 const (
 	clubSearchURL = "https://www.englandgolf.org/api/clubs/ClubSearch"
 )
 
-func clubsTask(
-	l *slog.Logger,
-	keydb func() goredis.Pool,
-	wp func() workerpool.Pool,
-	isLeader func() bool,
-	leaderChange <-chan struct{},
-) web.AsyncTaskFunc {
+func (a *App) clubsTask() web.AsyncTaskFunc {
 	return func(ctx context.Context) {
 		// Pick a random time between 15 - 60 minutes to run the task
 		intervalNum, err := rand.Int(rand.Reader, big.NewInt(45))
 		if err != nil {
-			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
+			a.base.Logger().Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
 		interval := time.Duration(intervalNum.Int64()+15) * time.Minute
+		a.base.Logger().Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
@@ -46,22 +42,20 @@ func clubsTask(
 			select {
 			case <-ctx.Done():
 				return
-			case <-leaderChange:
-				if !isLeader() {
-					l.Info("not leader, waiting for leader change")
+			case <-a.base.LeaderChange():
+				if !a.base.IsLeader() {
+					a.base.Logger().Info("not leader, waiting for leader change")
 					continue
 				}
-
-				l.Info("ticker started", slog.String(logKeys.KeyInterval, interval.String()))
 
 				for {
 					select {
 					case <-ctx.Done():
 						return
 					case <-ticker.C:
-						l.Debug("ticker ticked")
-						if err := clubWorker(ctx, l, keydb(), wp()); err != nil {
-							l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+						a.base.Logger().Debug("ticker ticked")
+						if err := clubWorker(ctx, a.base.Logger(), a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+							a.base.Logger().Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
 							continue
 						}
 					}
@@ -74,7 +68,7 @@ func clubsTask(
 func clubWorker(
 	ctx context.Context,
 	l *slog.Logger,
-	keydb goredis.Pool,
+	publisher jetstream.JetStream,
 	wp workerpool.Pool,
 ) error {
 	pageNum := 1
@@ -95,7 +89,7 @@ func clubWorker(
 
 			for _, club := range clubs {
 				dbClub := club.ToModel()
-				runnable := runnables.NewClubToKeyDB(ctx, l, keydb, dbClub)
+				runnable := runnables.NewPublishClubToNats(ctx, l, publisher, dbClub)
 				if err := wp.BlockingSchedule(runnable); err != nil { // nolint:revive // Traditional error handling
 					l.Error("failed to schedule club runnable", slog.String(logging.KeyError, err.Error()))
 					return fmt.Errorf("failed to schedule club runnable: %w", err)
@@ -128,7 +122,7 @@ func getEnglandGolfClubs(ctx context.Context, l *slog.Logger, pageNum int) ([]*E
 		AmenityIds:    make([]any, 0),
 		ProgrammeIds:  make([]any, 0),
 		PageNumber:    pageNum,
-		PageSize:      150,
+		PageSize:      runtime.NumCPU(), // Allows for the number of clubs to be fetched to be equal to the number of CPUs
 	}
 
 	dataBuf := bytes.NewBuffer(nil)

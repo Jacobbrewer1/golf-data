@@ -20,6 +20,8 @@ import (
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/jacobbrewer1/web/utils"
 	"github.com/jacobbrewer1/workerpool"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -92,9 +94,19 @@ type (
 
 		// serviceEndpointHashBucket is the service endpoint hash bucket for the application.
 		serviceEndpointHashBucket cache.HashBucket
+
+		// natsClient is the nats client for the application.
+		natsClient *nats.Conn
+
+		// natsJetStream is the nats jetstream for the application.
+		natsJetStream jetstream.JetStream
+
+		// natStream is the nats stream for the application.
+		natsStream jetstream.Stream
 	}
 )
 
+// NewApp creates a new application with the given logger.
 func NewApp(l *slog.Logger) (*App, error) {
 	if l == nil {
 		return nil, ErrNilLogger
@@ -124,6 +136,7 @@ func NewApp(l *slog.Logger) (*App, error) {
 	}, nil
 }
 
+// Start starts the application and applies the given options.
 func (a *App) Start(opts ...StartOption) error {
 	a.l.Info("starting application",
 		slog.String(logging.KeyGitCommit, utils.GitCommit()),
@@ -188,6 +201,7 @@ func (a *App) Start(opts ...StartOption) error {
 	return nil
 }
 
+// startServer starts the given server.
 func (a *App) startServer(name string, srv *http.Server) {
 	l := a.l.With(slog.String(logging.KeyServer, name))
 
@@ -218,6 +232,7 @@ func (a *App) WaitForEnd(onEnd ...func()) {
 	}
 }
 
+// Shutdown stops the application.
 func (a *App) Shutdown() {
 	if a.baseCtxCancel != nil {
 		a.baseCtxCancel()
@@ -268,30 +283,37 @@ func (a *App) Shutdown() {
 	a.shutdownWg.Wait()
 }
 
+// Logger returns the logger for the application.
 func (a *App) Logger() *slog.Logger {
 	return a.l
 }
 
+// VaultClient returns the vault client for the application.
 func (a *App) VaultClient() vaulty.Client {
 	return a.vaultClient
 }
 
+// Viper returns the viper instance for the application.
 func (a *App) Viper() *viper.Viper {
 	return a.vip
 }
 
+// DBConn returns the database connection for the application.
 func (a *App) DBConn() *repositories.Database {
 	return a.db
 }
 
+// KubeClient returns the Kubernetes client for the application.
 func (a *App) KubeClient() kubernetes.Interface {
 	return a.kubeClient
 }
 
+// Done returns a channel that is closed when the application is done.
 func (a *App) Done() <-chan struct{} {
 	return a.baseCtx.Done()
 }
 
+// IsLeader returns true if the application is the leader.
 func (a *App) IsLeader() bool {
 	if a.leaderElection == nil {
 		a.l.Info("leader election not set, assuming leader")
@@ -301,10 +323,12 @@ func (a *App) IsLeader() bool {
 	return a.leaderElection.IsLeader()
 }
 
+// LeaderChange returns a channel that is notified when the leader changes.
 func (a *App) LeaderChange() <-chan struct{} {
 	return a.leaderChange
 }
 
+// StartServer starts a new server with the given name and http.Server.
 func (a *App) StartServer(name string, srv *http.Server) error {
 	if _, found := a.servers.Load(name); found {
 		return fmt.Errorf("server %s already exists", name)
@@ -337,18 +361,55 @@ func (a *App) startAsyncTask(name string, indefinite bool, fn AsyncTaskFunc) {
 
 		// If task is configured as indefinite and the task stops before we stop running the entire app, close the app down
 		// with an error.
-		if indefinite && !errors.Is(a.baseCtx.Err(), context.Canceled) {
+		if indefinite && !errors.Is(a.baseCtx.Err(), context.Canceled) { // nolint:revive // Traditional error handling
 			a.l.Warn("indefinite async task closed before app shutdown",
 				slog.String(logging.KeyName, name),
 			)
+			a.baseCtxCancel()
 		}
 	}()
 }
 
+// RedisPool returns the redis pool for the application.
 func (a *App) RedisPool() goredis.Pool {
 	return a.redisPool
 }
 
+// WorkerPool returns the worker pool for the application.
 func (a *App) WorkerPool() workerpool.Pool {
 	return a.workerPool
+}
+
+// NatsClient returns the NATS client for the application.
+func (a *App) NatsClient() *nats.Conn {
+	return a.natsClient
+}
+
+// NatsJetStream returns the JetStream stream for the application.
+func (a *App) NatsJetStream() jetstream.JetStream {
+	return a.natsJetStream
+}
+
+// NatsStream returns the NATS stream for the application.
+func (a *App) NatsStream() jetstream.Stream {
+	return a.natsStream
+}
+
+// CreateNatsJetStreamConsumer creates a new JetStream consumer with the given name and subject filter.
+func (a *App) CreateNatsJetStreamConsumer(consumerName, subjectFilter string) (jetstream.Consumer, error) {
+	if a.natsStream == nil {
+		return nil, errors.New("nats stream is nil, ensure WithNatsJetStream is called")
+	}
+
+	cons, err := a.natsStream.CreateOrUpdateConsumer(a.baseCtx, jetstream.ConsumerConfig{
+		Durable:       consumerName,                // Durable name ensures state retention
+		AckPolicy:     jetstream.AckExplicitPolicy, // Acknowledge messages explicitly
+		FilterSubject: subjectFilter,               // Only accept messages from this subject
+		DeliverPolicy: jetstream.DeliverAllPolicy,  // Deliver all messages
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get consumer: %w", err)
+	}
+
+	return cons, nil
 }
