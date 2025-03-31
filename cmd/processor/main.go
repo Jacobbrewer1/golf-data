@@ -10,14 +10,60 @@ import (
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor"
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor/domain"
 	"github.com/jacobbrewer1/web"
-	"github.com/jacobbrewer1/web/cache"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/jacobbrewer1/web/utils"
 )
 
 const (
 	appName = "processor"
 )
+
+type App struct {
+	base *web.App
+
+	svc processor.Processor
+}
+
+func NewApp(l *slog.Logger) (*App, error) {
+	base, err := web.NewApp(l)
+	if err != nil {
+		return nil, err
+	}
+
+	return &App{
+		base: base,
+	}, nil
+}
+
+func (a *App) Start() error {
+	if err := a.base.Start(
+		web.WithVaultClient(),
+		web.WithDatabaseFromVault(),
+		web.WithInClusterNatsClient(),
+		web.WithNatsJetStream("golf-data", []string{"clubs"}),
+		web.WithDependencyBootstrap(func(ctx context.Context) error {
+			serviceRepo := repo.NewRepository(a.base.DBConn())
+			serviceDomain := domain.NewDomain(serviceRepo)
+
+			clubsConsumer, err := a.base.CreateNatsJetStreamConsumer(appName, "clubs")
+			if err != nil {
+				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
+			}
+
+			a.svc = processor.NewProcessor(a.base.Logger(), serviceDomain, clubsConsumer)
+			return nil
+		}),
+		web.WithIndefiniteAsyncTask("clubs-processes", a.Clubs),
+	); err != nil {
+		a.base.Logger().Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
+		os.Exit(1)
+	}
+
+	return nil
+}
+
+func (a *App) Clubs(ctx context.Context) {
+	a.svc.Clubs(ctx)
+}
 
 func main() {
 	l := logging.NewLogger(
@@ -25,50 +71,16 @@ func main() {
 		logging.WithAppName(appName),
 	)
 
-	a, err := web.NewApp(l)
+	a, err := NewApp(l)
 	if err != nil {
 		l.Error("failed to create web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
 	}
 
-	var service processor.Processor
-
-	if err := a.Start(
-		web.WithVaultClient(),
-		web.WithDatabaseFromVault(),
-		web.WithInClusterKubeClient(),
-		web.WithRedisPool(),
-		web.WithWorkerPool(),
-		web.WithLeaderElection(appName),
-		web.WithDependencyBootstrap(func(ctx context.Context) error {
-			namespace, err := utils.GetDeployedKubernetesNamespace()
-			if err != nil {
-				return fmt.Errorf("failed to get deployed namespace: %w", err)
-			}
-
-			hashBucket := cache.NewServiceEndpointHashBucket(
-				logging.LoggerWithComponent(l, "hash-bucket"),
-				a.KubeClient(),
-				appName,
-				namespace,
-				utils.PodName,
-			)
-
-			if err := hashBucket.Start(ctx); err != nil {
-				return fmt.Errorf("failed to start hash bucket: %w", err)
-			}
-
-			serviceRepo := repo.NewRepository(a.DBConn())
-			serviceDomain := domain.NewDomain(serviceRepo)
-			service = processor.NewProcessor(l, hashBucket, serviceDomain, a.RedisPool())
-
-			return nil
-		}),
-		web.WithIndefiniteAsyncTask("clubs-processes", service.Clubs),
-	); err != nil {
+	if err := a.Start(); err != nil {
 		l.Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
 	}
 
-	a.WaitForEnd()
+	a.base.WaitForEnd(a.base.Shutdown)
 }

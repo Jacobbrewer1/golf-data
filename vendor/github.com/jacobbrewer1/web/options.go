@@ -17,12 +17,18 @@ import (
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/jacobbrewer1/web/utils"
 	"github.com/jacobbrewer1/workerpool"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
+)
+
+const (
+	inClusterNatsEndpoint = "nats://nats-headless.nats:4222"
 )
 
 var (
@@ -318,5 +324,51 @@ func WithServiceEndpointHashBucket(appName string) StartOption {
 		a.serviceEndpointHashBucket = sb
 
 		return sb.Start(a.baseCtx)
+	}
+}
+
+// WithNatsClient is a StartOption that sets up the nats client.
+func WithNatsClient(target string) StartOption {
+	return func(a *App) error {
+		nc, err := nats.Connect(target)
+		if err != nil {
+			return fmt.Errorf("failed to connect to nats: %w", err)
+		}
+
+		a.natsClient = nc
+		return nil
+	}
+}
+
+// WithInClusterNatsClient is a StartOption that sets up the nats client with the in-cluster endpoint.
+func WithInClusterNatsClient() StartOption {
+	return WithNatsClient(inClusterNatsEndpoint)
+}
+
+// WithNatsJetStream is a StartOption that sets up nats jetstream.
+func WithNatsJetStream(streamName string, subjects []string) StartOption {
+	return func(a *App) error {
+		js, err := jetstream.New(a.natsClient)
+		if err != nil {
+			return fmt.Errorf("failed to create jetstream: %w", err)
+		}
+		a.natsJetStream = js
+
+		_, err = js.CreateStream(a.baseCtx, jetstream.StreamConfig{
+			Name:      streamName,
+			Subjects:  subjects,
+			Storage:   jetstream.FileStorage,
+			Retention: jetstream.LimitsPolicy,
+		})
+		if err != nil && !errors.Is(err, jetstream.ErrStreamNameAlreadyInUse) {
+			return fmt.Errorf("failed to create stream: %w", err)
+		}
+
+		a.natsStream, err = js.Stream(a.baseCtx, streamName)
+		if err != nil {
+			return fmt.Errorf("failed to get stream: %w", err)
+		}
+
+		return nil
 	}
 }
