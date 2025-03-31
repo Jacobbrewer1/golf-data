@@ -54,6 +54,9 @@ type (
 		// baseCtx is the base context for the application.
 		baseCtx context.Context
 
+		// baseCtxCancel is the base context cancel function.
+		baseCtxCancel context.CancelFunc
+
 		// vip is the viper instance for the application.
 		vip *viper.Viper
 
@@ -97,7 +100,7 @@ func NewApp(l *slog.Logger) (*App, error) {
 		return nil, ErrNilLogger
 	}
 
-	baseCtx := utils.GetInterruptedContext(l)
+	baseCtx, baseCtxCancel := utils.GetInterruptedContext(l)
 
 	baseCfg := new(AppConfig)
 	if err := env.Parse(baseCfg); err != nil {
@@ -111,14 +114,13 @@ func NewApp(l *slog.Logger) (*App, error) {
 	}
 
 	return &App{
-		l:                    l,
-		baseCfg:              baseCfg,
-		baseCtx:              baseCtx,
-		vip:                  vip,
-		metricsEnabled:       true,
-		servers:              sync.Map{},
-		shutdownWg:           new(sync.WaitGroup),
-		indefiniteAsyncTasks: sync.Map{},
+		l:              l,
+		baseCfg:        baseCfg,
+		baseCtx:        baseCtx,
+		baseCtxCancel:  baseCtxCancel,
+		vip:            vip,
+		metricsEnabled: true,
+		shutdownWg:     new(sync.WaitGroup),
 	}, nil
 }
 
@@ -202,6 +204,11 @@ func (a *App) startServer(name string, srv *http.Server) {
 	}()
 }
 
+// ChildContext returns a child context of the base context.
+func (a *App) ChildContext() (context.Context, context.CancelFunc) {
+	return context.WithCancel(a.baseCtx)
+}
+
 // WaitForEnd waits for the application to complete, either normally or via an interrupt signal.
 func (a *App) WaitForEnd(onEnd ...func()) {
 	<-a.baseCtx.Done()
@@ -212,6 +219,10 @@ func (a *App) WaitForEnd(onEnd ...func()) {
 }
 
 func (a *App) Shutdown() {
+	if a.baseCtxCancel != nil {
+		a.baseCtxCancel()
+	}
+
 	ctx, cancel := context.WithTimeout(a.baseCtx, 15*time.Second)
 	defer cancel()
 
@@ -277,10 +288,6 @@ func (a *App) KubeClient() kubernetes.Interface {
 	return a.kubeClient
 }
 
-func (a *App) Ctx() context.Context {
-	return a.baseCtx
-}
-
 func (a *App) Done() <-chan struct{} {
 	return a.baseCtx.Done()
 }
@@ -326,21 +333,13 @@ func (a *App) startAsyncTask(name string, indefinite bool, fn AsyncTaskFunc) {
 	a.shutdownWg.Add(1)
 	go func() {
 		defer a.shutdownWg.Done()
-		err := fn(a.baseCtx)
+		fn(a.baseCtx)
 
 		// If task is configured as indefinite and the task stops before we stop running the entire app, close the app down
 		// with an error.
 		if indefinite && !errors.Is(a.baseCtx.Err(), context.Canceled) {
 			a.l.Warn("indefinite async task closed before app shutdown",
 				slog.String(logging.KeyName, name),
-				slog.String(logging.KeyError, err.Error()),
-			)
-		}
-
-		if err != nil {
-			a.l.Error("async task failed",
-				slog.String(logging.KeyName, name),
-				slog.String(logging.KeyError, err.Error()),
 			)
 		}
 	}()
