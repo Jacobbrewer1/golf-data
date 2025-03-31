@@ -10,7 +10,7 @@ import (
 	"github.com/jacobbrewer1/web/logging"
 )
 
-func GetInterruptedContext(l *slog.Logger) context.Context {
+func GetInterruptedContext(l *slog.Logger) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		sig := make(chan os.Signal, 1)
@@ -19,5 +19,5 @@ func GetInterruptedContext(l *slog.Logger) context.Context {
 		l.Info("Received signal, shutting down", slog.String(logging.KeySignal, got.String()))
 		cancel()
 	}()
-	return ctx
+	return ctx, cancel
 }

@@ -10,7 +10,7 @@ import (
 )
 
 type Processor interface {
-	Clubs(ctx context.Context) error
+	Clubs(ctx context.Context)
 }
 
 type processor struct {

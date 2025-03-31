@@ -36,7 +36,7 @@ var (
 type HealthCheckFunc = func(ctx context.Context) error
 
 // AsyncTaskFunc is a function that performs an async task.
-type AsyncTaskFunc = func(ctx context.Context) error
+type AsyncTaskFunc = func(ctx context.Context)
 
 type StartOption func(*App) error
 

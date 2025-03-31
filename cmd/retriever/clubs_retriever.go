@@ -31,11 +31,12 @@ func clubsTask(
 	isLeader func() bool,
 	leaderChange <-chan struct{},
 ) web.AsyncTaskFunc {
-	return func(ctx context.Context) error {
+	return func(ctx context.Context) {
 		// Pick a random time between 15 - 60 minutes to run the task
 		intervalNum, err := rand.Int(rand.Reader, big.NewInt(45))
 		if err != nil {
-			return fmt.Errorf("failed to generate random interval: %w", err)
+			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
+			return
 		}
 		interval := time.Duration(intervalNum.Int64()+15) * time.Minute
 		ticker := time.NewTicker(interval)
@@ -44,7 +45,7 @@ func clubsTask(
 		for {
 			select {
 			case <-ctx.Done():
-				return nil
+				return
 			case <-leaderChange:
 				if !isLeader() {
 					l.Info("not leader, waiting for leader change")
@@ -56,7 +57,7 @@ func clubsTask(
 				for {
 					select {
 					case <-ctx.Done():
-						return nil
+						return
 					case <-ticker.C:
 						l.Debug("ticker ticked")
 						if err := clubWorker(ctx, l, keydb(), wp()); err != nil {
