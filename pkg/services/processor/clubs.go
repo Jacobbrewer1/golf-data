@@ -16,11 +16,11 @@ import (
 	"github.com/jacobbrewer1/web/logging"
 )
 
-func (p *processor) Clubs(ctx context.Context) error {
+func (p *processor) Clubs(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 			got, err := redis.String(p.keydb.DoCtx(ctx, "BLPOP", "eg:clubs"))
 			if err != nil {
