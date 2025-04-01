@@ -55,6 +55,25 @@ func (m *Hole) Insert(db DB) error {
 	return nil
 }
 
+func (m *Hole) InsertHoleWithPK(db DB) error {
+	if !m.IsPrimaryKeySet() {
+		return ErrNoPK
+	}
+
+	t := prometheus.NewTimer(DatabaseLatency.WithLabelValues("insert_with_ids_" + HoleTableName))
+	defer t.ObserveDuration()
+
+	const sqlstr = "INSERT INTO hole (" +
+		"`id`, `course_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters`" +
+		") VALUES (" +
+		"?, ?, ?, ?, ?, ?, ?" +
+		")"
+
+	DBLog(sqlstr, m.Id, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	_, err := db.Exec(sqlstr, m.Id, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	return err
+}
+
 func InsertManyHoles(db DB, ms ...*Hole) error {
 	if len(ms) == 0 {
 		return nil

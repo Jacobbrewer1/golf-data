@@ -4,9 +4,15 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
+)
+
+var (
+	// ErrNoPK is returned when a primary key is not set.
+	ErrNoPK = errors.New("primary key is not set")
 )
 
 // Saveable is the interface implemented by types which can save themselves to the database.
