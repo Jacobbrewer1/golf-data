@@ -12,6 +12,54 @@ type MockRepository struct {
 	mock.Mock
 }
 
+// ClubById provides a mock function with given fields: id
+func (_m *MockRepository) ClubById(id int) (*models.Club, error) {
+	ret := _m.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ClubById")
+	}
+
+	var r0 *models.Club
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int) (*models.Club, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(int) *models.Club); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.Club)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// PatchClub provides a mock function with given fields: currentClub, newClub
+func (_m *MockRepository) PatchClub(currentClub *models.Club, newClub *models.Club) error {
+	ret := _m.Called(currentClub, newClub)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchClub")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.Club, *models.Club) error); ok {
+		r0 = rf(currentClub, newClub)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SaveClub provides a mock function with given fields: club
 func (_m *MockRepository) SaveClub(club *models.Club) error {
 	ret := _m.Called(club)
