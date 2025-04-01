@@ -51,6 +51,25 @@ func (m *Course) Insert(db DB) error {
 	return nil
 }
 
+func (m *Course) InsertCourseWithPK(db DB) error {
+	if !m.IsPrimaryKeySet() {
+		return ErrNoPK
+	}
+
+	t := prometheus.NewTimer(DatabaseLatency.WithLabelValues("insert_with_ids_" + CourseTableName))
+	defer t.ObserveDuration()
+
+	const sqlstr = "INSERT INTO course (" +
+		"`id`, `club_id`, `name`" +
+		") VALUES (" +
+		"?, ?, ?" +
+		")"
+
+	DBLog(sqlstr, m.Id, m.ClubId, m.Name)
+	_, err := db.Exec(sqlstr, m.Id, m.ClubId, m.Name)
+	return err
+}
+
 func InsertManyCourses(db DB, ms ...*Course) error {
 	if len(ms) == 0 {
 		return nil

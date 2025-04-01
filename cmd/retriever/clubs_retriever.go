@@ -33,7 +33,7 @@ func (a *App) clubsTask() web.AsyncTaskFunc {
 			a.base.Logger().Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+15) * time.Minute
+		interval := time.Duration(intervalNum.Int64()+15) * time.Second
 		a.base.Logger().Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -42,11 +42,13 @@ func (a *App) clubsTask() web.AsyncTaskFunc {
 			select {
 			case <-ctx.Done():
 				return
-			case <-a.base.LeaderChange():
-				if !a.base.IsLeader() {
-					a.base.Logger().Info("not leader, waiting for leader change")
-					continue
-				}
+			//case <-a.base.LeaderChange():
+			//	if !a.base.IsLeader() {
+			//		a.base.Logger().Info("not leader, waiting for leader change")
+			//		continue
+			//	}
+			default:
+				
 
 				for {
 					select {

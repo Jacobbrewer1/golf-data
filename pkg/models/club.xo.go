@@ -55,6 +55,25 @@ func (m *Club) Insert(db DB) error {
 	return nil
 }
 
+func (m *Club) InsertClubWithPK(db DB) error {
+	if !m.IsPrimaryKeySet() {
+		return ErrNoPK
+	}
+
+	t := prometheus.NewTimer(DatabaseLatency.WithLabelValues("insert_with_ids_" + ClubTableName))
+	defer t.ObserveDuration()
+
+	const sqlstr = "INSERT INTO club (" +
+		"`id`, `name`, `address1`, `address2`, `address3`, `address4`, `postal_code`" +
+		") VALUES (" +
+		"?, ?, ?, ?, ?, ?, ?" +
+		")"
+
+	DBLog(sqlstr, m.Id, m.Name, m.Address1, m.Address2, m.Address3, m.Address4, m.PostalCode)
+	_, err := db.Exec(sqlstr, m.Id, m.Name, m.Address1, m.Address2, m.Address3, m.Address4, m.PostalCode)
+	return err
+}
+
 func InsertManyClubs(db DB, ms ...*Club) error {
 	if len(ms) == 0 {
 		return nil

@@ -63,6 +63,25 @@ func (m *CourseDetails) Insert(db DB) error {
 	return nil
 }
 
+func (m *CourseDetails) InsertCourseDetailsWithPK(db DB) error {
+	if !m.IsPrimaryKeySet() {
+		return ErrNoPK
+	}
+
+	t := prometheus.NewTimer(DatabaseLatency.WithLabelValues("insert_with_ids_" + CourseDetailsTableName))
+	defer t.ObserveDuration()
+
+	const sqlstr = "INSERT INTO course_details (" +
+		"`id`, `course_id`, `marker`, `slope`, `course_rating`, `front_nine_par`, `back_nine_par`, `total_par`, `front_nine_yards`, `back_nine_yards`, `total_yards`, `front_nine_meters`, `back_nine_meters`, `total_meters`" +
+		") VALUES (" +
+		"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" +
+		")"
+
+	DBLog(sqlstr, m.Id, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
+	_, err := db.Exec(sqlstr, m.Id, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
+	return err
+}
+
 func InsertManyCourseDetailss(db DB, ms ...*CourseDetails) error {
 	if len(ms) == 0 {
 		return nil
