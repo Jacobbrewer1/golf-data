@@ -52,6 +52,8 @@ func (a *App) clubsTask() web.AsyncTaskFunc {
 					select {
 					case <-ctx.Done():
 						return
+					case <-a.base.LeaderChange():
+						// Do nothing as this logic is handled in the outer loop
 					case <-ticker.C:
 						a.base.Logger().Debug("ticker ticked")
 						if err := clubWorker(ctx, a.base.Logger(), a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
@@ -59,6 +61,12 @@ func (a *App) clubsTask() web.AsyncTaskFunc {
 							continue
 						}
 					}
+
+					if a.base.IsLeader() {
+						continue
+					}
+					a.base.Logger().Info("not leader, waiting for leader change")
+					break
 				}
 			}
 		}
