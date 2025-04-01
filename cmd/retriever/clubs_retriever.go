@@ -62,10 +62,11 @@ func (a *App) clubsTask() web.AsyncTaskFunc {
 						}
 					}
 
-					if !a.base.IsLeader() {
-						a.base.Logger().Info("not leader, waiting for leader change")
-						break
+					if a.base.IsLeader() {
+						continue
 					}
+					a.base.Logger().Info("not leader, waiting for leader change")
+					break
 				}
 			}
 		}
