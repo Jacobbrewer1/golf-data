@@ -48,8 +48,13 @@ func (a *App) clubsTask() web.AsyncTaskFunc {
 					continue
 				}
 
-				a.base.Logger().Info("Starting club worker loop")
+				a.base.Logger().Info("leader change detected, running on startup")
+				if err := clubWorker(ctx, a.base.Logger(), a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+					a.base.Logger().Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+					continue
+				}
 
+				a.base.Logger().Info("Starting club worker loop")
 				for {
 					select {
 					case <-ctx.Done():
