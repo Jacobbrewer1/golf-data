@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/logging"
+	"github.com/nats-io/nats.go"
 )
 
 const (
@@ -35,6 +38,27 @@ func (a *App) Start() error {
 		web.WithInClusterNatsClient(),
 		web.WithNatsJetStream("golf-data", []string{"clubs"}),
 		web.WithIndefiniteAsyncTask("clubs-fetcher", a.clubsTask()),
+		web.WithHealthCheck(map[string]web.HealthCheckFunc{
+			"kube": func(ctx context.Context) error {
+				if _, err := a.base.KubeClient().Discovery().ServerVersion(); err != nil {
+					return fmt.Errorf("failed to get server version: %w", err)
+				}
+				return nil
+			},
+			"nats": func(ctx context.Context) error {
+				status := a.base.NatsClient().Status()
+				switch status {
+				case nats.CONNECTED,
+					nats.CONNECTING,
+					nats.RECONNECTING,
+					nats.DRAINING_SUBS,
+					nats.DRAINING_PUBS:
+					return nil
+				default:
+					return fmt.Errorf("nats status: %s", status)
+				}
+			},
+		}),
 	); err != nil {
 		a.base.Logger().Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
