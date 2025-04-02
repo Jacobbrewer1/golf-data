@@ -9,7 +9,7 @@ WORKDIR /build
 COPY . /build/
 RUN go build -o application ./cmd/${APP_NAME}
 
-FROM scratch
+FROM docker.io/ubuntu:latest
 
 COPY --from=build /build/application /usr/local/bin/application
 ENV PATH="/usr/local/bin:${PATH}"
