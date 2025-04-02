@@ -12,7 +12,6 @@ import (
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/nats-io/nats.go"
-	_ "golang.org/x/crypto/x509roots/fallback"
 )
 
 const (
