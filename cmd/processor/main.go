@@ -11,6 +11,7 @@ import (
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor/domain"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/logging"
+	"github.com/nats-io/nats.go"
 )
 
 const (
@@ -53,6 +54,27 @@ func (a *App) Start() error {
 			return nil
 		}),
 		web.WithIndefiniteAsyncTask("clubs-processes", a.Clubs),
+		web.WithHealthCheck(map[string]web.HealthCheckFunc{
+			"nats": func(ctx context.Context) error {
+				status := a.base.NatsClient().Status()
+				switch status {
+				case nats.CONNECTED,
+					nats.CONNECTING,
+					nats.RECONNECTING,
+					nats.DRAINING_SUBS,
+					nats.DRAINING_PUBS:
+					return nil
+				default:
+					return fmt.Errorf("nats status: %s", status)
+				}
+			},
+			"database": func(ctx context.Context) error {
+				if err := a.base.DBConn().PingContext(ctx); err != nil {
+					return fmt.Errorf("failed to ping database: %w", err)
+				}
+				return nil
+			},
+		}),
 	); err != nil {
 		a.base.Logger().Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
