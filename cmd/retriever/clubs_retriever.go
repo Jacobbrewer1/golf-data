@@ -48,6 +48,8 @@ func (a *App) clubsTask() web.AsyncTaskFunc {
 					continue
 				}
 
+				a.base.Logger().Info("Starting club worker loop")
+
 				for {
 					select {
 					case <-ctx.Done():
