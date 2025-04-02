@@ -22,6 +22,7 @@ require (
 	github.com/prometheus/client_golang v1.21.1
 	github.com/stretchr/testify v1.10.0
 	github.com/vektra/mockery/v2 v2.53.3
+	golang.org/x/crypto/x509roots/fallback v0.0.0-20250317152234-d0a798f77473
 )
 
 require (

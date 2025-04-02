@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -116,9 +115,9 @@ func getEnglandGolfClubs(ctx context.Context, l *slog.Logger, pageNum int) ([]*E
 	retryClient := retryablehttp.NewClient()
 	retryClient.Logger = logging.LoggerWithComponent(l, "retryablehttp")
 	retryClient.RetryMax = 3
-	retryClient.HTTPClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
+	//retryClient.HTTPClient.Transport = &http.Transport{
+	//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	//}
 	client := retryClient.StandardClient()
 
 	type body struct {
