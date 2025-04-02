@@ -79,7 +79,7 @@ jobs:
 
       - name: Build Mage command
         run: |
-          if [ "${{ github.event_name }}" == "workflow_call" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" == "workflow_call" ] ]; then
             if [ "${{ inputs.app }}" != "all" ]; then
               echo "mage image:one ${{ inputs.app }}"
               echo "MAGE_COMMAND=image:one ${{ inputs.app }}" >> $GITHUB_ENV
