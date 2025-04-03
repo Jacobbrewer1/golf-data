@@ -120,9 +120,6 @@ func getEnglandGolfClubs(ctx context.Context, l *slog.Logger, pageNum int) ([]*E
 	retryClient := retryablehttp.NewClient()
 	retryClient.Logger = logging.LoggerWithComponent(l, "retryablehttp")
 	retryClient.RetryMax = 3
-	//retryClient.HTTPClient.Transport = &http.Transport{
-	//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	//}
 	client := retryClient.StandardClient()
 
 	type body struct {
