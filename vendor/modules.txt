@@ -401,6 +401,9 @@ golang.org/x/crypto/nacl/box
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/salsa20/salsa
+# golang.org/x/crypto/x509roots/fallback v0.0.0-20250317152234-d0a798f77473
+## explicit; go 1.23.0
+golang.org/x/crypto/x509roots/fallback
 # golang.org/x/mod v0.23.0
 ## explicit; go 1.22.0
 golang.org/x/mod/internal/lazyregexp
