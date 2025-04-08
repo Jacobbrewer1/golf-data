@@ -71,7 +71,6 @@ func (a *App) clubsTask(l *slog.Logger) web.AsyncTaskFunc {
 				continue
 			}
 			l.Info("not leader, waiting for leader change")
-			break
 		}
 	}
 }

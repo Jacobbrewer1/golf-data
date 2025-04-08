@@ -67,7 +67,6 @@ func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 				continue
 			}
 			l.Info("not leader, waiting for leader change")
-			break
 		}
 	}
 }
