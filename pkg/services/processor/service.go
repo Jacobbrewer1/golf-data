@@ -10,6 +10,7 @@ import (
 
 type Processor interface {
 	Clubs(ctx context.Context)
+	Courses(ctx context.Context)
 }
 
 type processor struct {

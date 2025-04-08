@@ -80,6 +80,7 @@ func (a *App) Start() error {
 			),
 		),
 		web.WithIndefiniteAsyncTask("clubs-processes", a.Clubs),
+		web.WithIndefiniteAsyncTask("courses-processes", a.Courses),
 	); err != nil {
 		a.base.Logger().Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
@@ -90,6 +91,10 @@ func (a *App) Start() error {
 
 func (a *App) Clubs(ctx context.Context) {
 	a.svc.Clubs(ctx)
+}
+
+func (a *App) Courses(ctx context.Context) {
+	a.svc.Courses(ctx)
 }
 
 func main() {
