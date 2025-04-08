@@ -51,7 +51,12 @@ func (a *App) Start() error {
 				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
 			}
 
-			a.svc = processor.NewProcessor(a.base.Logger(), serviceDomain, clubsConsumer)
+			coursesConsumer, err := a.base.CreateNatsJetStreamConsumer(appName, "courses")
+			if err != nil {
+				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
+			}
+
+			a.svc = processor.NewProcessor(a.base.Logger(), serviceDomain, clubsConsumer, coursesConsumer)
 			return nil
 		}),
 		web.WithHealthCheck(

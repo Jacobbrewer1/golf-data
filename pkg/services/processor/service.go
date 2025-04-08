@@ -14,15 +14,17 @@ type Processor interface {
 }
 
 type processor struct {
-	l             *slog.Logger
-	dom           domain.Domain
-	clubsConsumer jetstream.Consumer
+	l               *slog.Logger
+	dom             domain.Domain
+	clubsConsumer   jetstream.Consumer
+	coursesConsumer jetstream.Consumer
 }
 
-func NewProcessor(l *slog.Logger, d domain.Domain, clubsConsumer jetstream.Consumer) Processor {
+func NewProcessor(l *slog.Logger, d domain.Domain, clubsConsumer, coursesConsumer jetstream.Consumer) Processor {
 	return &processor{
-		l:             l,
-		dom:           d,
-		clubsConsumer: clubsConsumer,
+		l:               l,
+		dom:             d,
+		clubsConsumer:   clubsConsumer,
+		coursesConsumer: coursesConsumer,
 	}
 }
