@@ -33,10 +33,10 @@ func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		l.Info("leader change detected, running on startup")
-		if err := courseWorker(ctx, l, a.r, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
-			l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
-		}
+		//l.Info("leader change detected, running on startup")
+		//if err := courseWorker(ctx, l, a.r, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+		//	l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+		//}
 
 		l.Info("Starting course worker loop")
 		for {
