@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alexliesenfeld/health"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jacobbrewer1/goredis"
 	"github.com/jacobbrewer1/vaulty"
 	"github.com/jacobbrewer1/vaulty/repositories"
 	"github.com/jacobbrewer1/web/cache"
+	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/jacobbrewer1/web/utils"
 	"github.com/jacobbrewer1/workerpool"
@@ -35,11 +35,6 @@ var (
 	ErrNilVaultClient = errors.New("nil vault client")
 	ErrNoHostname     = errors.New("no hostname provided")
 )
-
-// HealthCheckFunc is a function that performs a health check.
-//
-// This is purely here for readability and to provide a consistent type for health checks.
-type HealthCheckFunc = func(ctx context.Context) error
 
 // AsyncTaskFunc is a function that performs an async task.
 type AsyncTaskFunc = func(ctx context.Context)
@@ -180,47 +175,19 @@ func WithLeaderElection(lockName string) StartOption {
 	}
 }
 
-// WithHealthCheck is a StartOption that sets up the health check.
-func WithHealthCheck(checks map[string]HealthCheckFunc) StartOption {
+// WithHealthCheck is a StartOption that sets up the health2 check.
+func WithHealthCheck(checks ...*health.Check) StartOption {
 	return func(a *App) error {
-		healthChecks := make(map[string]health.Check)
-		for name, check := range checks {
-			healthChecks[name] = health.Check{
-				Name: name,
-				Check: func(ctx context.Context) error {
-					return check(ctx)
-				},
-				Timeout:            3 * time.Second,
-				MaxTimeInError:     0,
-				MaxContiguousFails: 0,
-				StatusListener: func(ctx context.Context, name string, state health.CheckState) {
-					a.l.Info("health check status changed",
-						slog.String(logging.KeyName, name),
-						slog.String(logging.KeyState, string(state.Status)),
-					)
-				},
-				Interceptors:         nil,
-				DisablePanicRecovery: false,
-			}
+		checkerOpts := make([]health.CheckerOption, 0)
+		for _, check := range checks {
+			checkerOpts = append(checkerOpts, health.WithCheckerCheck(check))
 		}
 
-		checkOpts := make([]health.CheckerOption, 0)
-		checkOpts = append(checkOpts,
-			health.WithCacheDuration(0),
-			health.WithDisabledCache(),
-			health.WithTimeout(10*time.Second),
-		)
-		for _, check := range healthChecks {
-			checkOpts = append(checkOpts, health.WithCheck(check))
-		}
-
-		checker := health.NewChecker(
-			checkOpts...,
-		)
+		checker := health.NewChecker(checkerOpts...)
 
 		a.servers.Store("health", &http.Server{
 			Addr:              fmt.Sprintf(":%d", HealthPort),
-			Handler:           health.NewHandler(checker),
+			Handler:           checker.Handler(),
 			ReadHeaderTimeout: 10 * time.Second,
 		})
 

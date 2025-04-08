@@ -10,6 +10,7 @@ import (
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor"
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor/domain"
 	"github.com/jacobbrewer1/web"
+	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/nats-io/nats.go"
 )
@@ -53,9 +54,8 @@ func (a *App) Start() error {
 			a.svc = processor.NewProcessor(a.base.Logger(), serviceDomain, clubsConsumer)
 			return nil
 		}),
-		web.WithIndefiniteAsyncTask("clubs-processes", a.Clubs),
-		web.WithHealthCheck(map[string]web.HealthCheckFunc{
-			"nats": func(ctx context.Context) error {
+		web.WithHealthCheck(
+			health.NewCheck("nats", func(ctx context.Context) error {
 				status := a.base.NatsClient().Status()
 				switch status {
 				case nats.CONNECTED,
@@ -68,13 +68,18 @@ func (a *App) Start() error {
 					return fmt.Errorf("nats status: %s", status)
 				}
 			},
-			"database": func(ctx context.Context) error {
+				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(a.base.Logger(), "health-check"))),
+			),
+			health.NewCheck("database", func(ctx context.Context) error {
 				if err := a.base.DBConn().PingContext(ctx); err != nil {
 					return fmt.Errorf("failed to ping database: %w", err)
 				}
 				return nil
 			},
-		}),
+				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(a.base.Logger(), "health-check"))),
+			),
+		),
+		web.WithIndefiniteAsyncTask("clubs-processes", a.Clubs),
 	); err != nil {
 		a.base.Logger().Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
