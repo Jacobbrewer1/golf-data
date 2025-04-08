@@ -38,49 +38,40 @@ func (a *App) clubsTask(l *slog.Logger) web.AsyncTaskFunc {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
+		//l.Info("leader change detected, running on startup")
+		//if err := clubWorker(ctx, l, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+		//	l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+		//}
+
+		l.Info("Starting club worker loop")
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-a.base.LeaderChange():
+				// Do nothing as this logic is handled in the outer loop
+			case <-ticker.C:
 				if !a.base.IsLeader() {
-					l.Info("not leader, waiting for leader change")
-					continue
+					break
 				}
 
-				l.Info("leader change detected, running on startup")
-				if err := clubWorker(ctx, l, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+				l.Debug("ticker ticked")
+				if err := clubWorker(
+					ctx,
+					logging.LoggerWithComponent(l, "clubs-worker"),
+					a.base.NatsJetStream(),
+					a.base.WorkerPool(),
+				); err != nil {
 					l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
 					continue
 				}
-
-				l.Info("Starting club worker loop")
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case <-a.base.LeaderChange():
-						// Do nothing as this logic is handled in the outer loop
-					case <-ticker.C:
-						l.Debug("ticker ticked")
-						if err := clubWorker(
-							ctx,
-							logging.LoggerWithComponent(l, "clubs-worker"),
-							a.base.NatsJetStream(),
-							a.base.WorkerPool(),
-						); err != nil {
-							l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
-							continue
-						}
-					}
-
-					if a.base.IsLeader() {
-						continue
-					}
-					l.Info("not leader, waiting for leader change")
-					break
-				}
 			}
+
+			if a.base.IsLeader() {
+				continue
+			}
+			l.Info("not leader, waiting for leader change")
+			break
 		}
 	}
 }
