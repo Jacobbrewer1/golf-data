@@ -42,7 +42,7 @@ func (c *publishHolesToNats) Run() {
 			return
 		}
 
-		if _, err := c.publisher.Publish(c.ctx, "details", listItem.Bytes()); err != nil {
+		if _, err := c.publisher.Publish(c.ctx, "holes", listItem.Bytes()); err != nil {
 			c.l.Error("failed to publish hole to nats", slog.String(logging.KeyError, err.Error()))
 			return
 		}
