@@ -258,9 +258,9 @@ func (_m *MockRepository) SaveDetails(details *models.CourseDetails) error {
 	return r0
 }
 
-// SaveHole provides a mock function with given fields: holes
-func (_m *MockRepository) SaveHole(holes *models.Hole) error {
-	ret := _m.Called(holes)
+// SaveHole provides a mock function with given fields: hole
+func (_m *MockRepository) SaveHole(hole *models.Hole) error {
+	ret := _m.Called(hole)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SaveHole")
@@ -268,7 +268,7 @@ func (_m *MockRepository) SaveHole(holes *models.Hole) error {
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*models.Hole) error); ok {
-		r0 = rf(holes)
+		r0 = rf(hole)
 	} else {
 		r0 = ret.Error(0)
 	}
