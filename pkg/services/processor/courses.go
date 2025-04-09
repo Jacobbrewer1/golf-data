@@ -39,7 +39,7 @@ func (p *processor) processCourseHandler(courseMsg jetstream.Msg) {
 	}
 
 	if err := courseMsg.Ack(); err != nil { // nolint:revive // Traditional error handling
-		p.l.Error("failed to ack club message", slog.String(logging.KeyError, err.Error()))
+		p.l.Error("failed to ack course message", slog.String(logging.KeyError, err.Error()))
 		return
 	}
 }
