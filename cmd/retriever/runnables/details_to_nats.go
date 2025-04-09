@@ -46,5 +46,5 @@ func (c *publishDetailsToNats) Run() {
 		return
 	}
 
-	c.l.Debug("details inserted to nats", slog.Int(logKeys.KeyDetailsId, c.details.CourseId))
+	c.l.Debug("details inserted to nats", slog.Int(logKeys.KeyDetailsId, c.details.Id))
 }
