@@ -21,20 +21,15 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-const (
-	clubSearchURL = "https://www.englandgolf.org/api/clubs/ClubSearch"
-)
-
 func (a *App) clubsTask(l *slog.Logger) web.AsyncTaskFunc {
 	return func(ctx context.Context) {
-		// Pick a random time between 60 - 180 minutes to run the task
-		intervalNum, err := rand.Int(rand.Reader, big.NewInt(120))
+		intervalNum, err := rand.Int(rand.Reader, big.NewInt(ticketMagicNumber()))
 		if err != nil {
 			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+60) * time.Minute
-		l.Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
+		interval := time.Duration(intervalNum.Int64()+minTickerDurationSec) * time.Minute
+		l.Info("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
@@ -142,7 +137,7 @@ func getEnglandGolfClubs(ctx context.Context, l *slog.Logger, pageNum int) ([]*E
 		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, clubSearchURL, dataBuf)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/clubs/ClubSearch", dataBuf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

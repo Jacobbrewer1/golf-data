@@ -8,6 +8,8 @@ import (
 type Domain interface {
 	SaveClub(club *models.Club) error
 	SaveCourse(course *models.Course) error
+	SaveDetails(details *models.CourseDetails) error
+	SaveHole(holes *models.Hole) error
 }
 
 type domain struct {

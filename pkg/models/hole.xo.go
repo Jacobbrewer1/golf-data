@@ -21,7 +21,7 @@ const (
 // Hole represents a row from 'hole'.
 type Hole struct {
 	Id             int `db:"id,pk,autoinc"`
-	CourseId       int `db:"course_id"`
+	DetailsId      int `db:"details_id"`
 	Number         int `db:"number"`
 	Par            int `db:"par"`
 	Stroke         int `db:"stroke"`
@@ -35,13 +35,13 @@ func (m *Hole) Insert(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "INSERT INTO hole (" +
-		"`course_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters`" +
+		"`details_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters`" +
 		") VALUES (" +
 		"?, ?, ?, ?, ?, ?" +
 		")"
 
-	DBLog(sqlstr, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
-	res, err := db.Exec(sqlstr, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	DBLog(sqlstr, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	res, err := db.Exec(sqlstr, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
 	if err != nil {
 		return err
 	}
@@ -64,13 +64,13 @@ func (m *Hole) InsertHoleWithPK(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "INSERT INTO hole (" +
-		"`id`, `course_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters`" +
+		"`id`, `details_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters`" +
 		") VALUES (" +
 		"?, ?, ?, ?, ?, ?, ?" +
 		")"
 
-	DBLog(sqlstr, m.Id, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
-	_, err := db.Exec(sqlstr, m.Id, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	DBLog(sqlstr, m.Id, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	_, err := db.Exec(sqlstr, m.Id, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
 	return err
 }
 
@@ -122,11 +122,11 @@ func (m *Hole) Update(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "UPDATE hole " +
-		"SET `course_id` = ?, `number` = ?, `par` = ?, `stroke` = ?, `distance_yards` = ?, `distance_meters` = ? " +
+		"SET `details_id` = ?, `number` = ?, `par` = ?, `stroke` = ?, `distance_yards` = ?, `distance_meters` = ? " +
 		"WHERE `id` = ?"
 
-	DBLog(sqlstr, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters, m.Id)
-	res, err := db.Exec(sqlstr, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters, m.Id)
+	DBLog(sqlstr, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters, m.Id)
+	res, err := db.Exec(sqlstr, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters, m.Id)
 	if err != nil {
 		return err
 	}
@@ -148,14 +148,14 @@ func (m *Hole) InsertWithUpdate(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "INSERT INTO hole (" +
-		"`course_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters`" +
+		"`details_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters`" +
 		") VALUES (" +
 		"?, ?, ?, ?, ?, ?" +
 		") ON DUPLICATE KEY UPDATE " +
-		"`course_id` = VALUES(`course_id`), `number` = VALUES(`number`), `par` = VALUES(`par`), `stroke` = VALUES(`stroke`), `distance_yards` = VALUES(`distance_yards`), `distance_meters` = VALUES(`distance_meters`)"
+		"`details_id` = VALUES(`details_id`), `number` = VALUES(`number`), `par` = VALUES(`par`), `stroke` = VALUES(`stroke`), `distance_yards` = VALUES(`distance_yards`), `distance_meters` = VALUES(`distance_meters`)"
 
-	DBLog(sqlstr, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
-	res, err := db.Exec(sqlstr, m.CourseId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	DBLog(sqlstr, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
+	res, err := db.Exec(sqlstr, m.DetailsId, m.Number, m.Par, m.Stroke, m.DistanceYards, m.DistanceMeters)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func HoleById(db DB, id int) (*Hole, error) {
 	t := prometheus.NewTimer(DatabaseLatency.WithLabelValues("get_" + HoleTableName + "_by_id"))
 	defer t.ObserveDuration()
 
-	const sqlstr = "SELECT `id`, `course_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters` " +
+	const sqlstr = "SELECT `id`, `details_id`, `number`, `par`, `stroke`, `distance_yards`, `distance_meters` " +
 		"FROM hole " +
 		"WHERE `id` = ?"
 
@@ -272,11 +272,11 @@ func (m *Hole) Patch(db DB, newT *Hole) error {
 	return nil
 }
 
-// GetCourseIdCourse Gets an instance of Course
+// GetDetailsIdCourseDetails Gets an instance of CourseDetails
 //
-// Generated from constraint hole_course_id_fk
-func (m *Hole) GetCourseIdCourse(db DB) (*Course, error) {
-	return CourseById(db, m.CourseId)
+// Generated from constraint hole_details_id_fk
+func (m *Hole) GetDetailsIdCourseDetails(db DB) (*CourseDetails, error) {
+	return CourseDetailsById(db, m.DetailsId)
 }
 
 // GetAllHoles retrieves all rows from 'hole' as a slice of Hole.
@@ -288,7 +288,7 @@ func GetAllHoles(db DB, filters ...any) ([]*Hole, error) {
 
 	args := make([]any, 0)
 	builder := new(strings.Builder)
-	builder.WriteString("SELECT t.id, t.course_id, t.number, t.par, t.stroke, t.distance_yards, t.distance_meters")
+	builder.WriteString("SELECT t.id, t.details_id, t.number, t.par, t.stroke, t.distance_yards, t.distance_meters")
 
 	if len(filters) > 0 {
 		for _, filter := range filters {

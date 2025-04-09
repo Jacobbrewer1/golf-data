@@ -9,4 +9,10 @@ type Repository interface {
 	SaveCourse(course *models.Course) error
 	CourseById(id int) (*models.Course, error)
 	PatchCourse(currentCourse, newCourse *models.Course) error
+	SaveDetails(details *models.CourseDetails) error
+	CourseDetailsById(id int) (*models.CourseDetails, error)
+	PatchDetails(currentDetails, newDetails *models.CourseDetails) error
+	HolesByMarkerId(id int) ([]*models.Hole, error)
+	SaveHole(hole *models.Hole) error
+	PatchHole(currentHole, newHole *models.Hole) error
 }

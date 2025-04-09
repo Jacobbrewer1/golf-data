@@ -42,6 +42,36 @@ func (_m *MockRepository) GetClubs() ([]*models.Club, error) {
 	return r0, r1
 }
 
+// GetCourses provides a mock function with no fields
+func (_m *MockRepository) GetCourses() ([]*models.Course, error) {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCourses")
+	}
+
+	var r0 []*models.Course
+	var r1 error
+	if rf, ok := ret.Get(0).(func() ([]*models.Course, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() []*models.Course); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*models.Course)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // NewMockRepository creates a new instance of MockRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockRepository(t interface {
