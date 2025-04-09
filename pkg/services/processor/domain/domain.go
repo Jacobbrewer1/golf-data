@@ -7,6 +7,7 @@ import (
 
 type Domain interface {
 	SaveClub(club *models.Club) error
+	SaveCourse(course *models.Course) error
 }
 
 type domain struct {

@@ -26,6 +26,19 @@ func (c *EnglandGolfClubResponse) ToModel() *models.Club {
 		Address4:   c.LocAddress4,
 		PostalCode: c.PostalCode,
 	}
-
 	return dbClub
+}
+
+type EnglandGolfCourseResponse struct {
+	CourseId int    `json:"CourseId"`
+	Name     string `json:"Name"`
+}
+
+func (c *EnglandGolfCourseResponse) ToModel(clubId int) *models.Course {
+	dbCourse := &models.Course{
+		Id:     c.CourseId,
+		Name:   c.Name,
+		ClubId: clubId,
+	}
+	return dbCourse
 }

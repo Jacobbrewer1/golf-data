@@ -25,57 +25,54 @@ const (
 	clubSearchURL = "https://www.englandgolf.org/api/clubs/ClubSearch"
 )
 
-func (a *App) clubsTask() web.AsyncTaskFunc {
+func (a *App) clubsTask(l *slog.Logger) web.AsyncTaskFunc {
 	return func(ctx context.Context) {
-		// Pick a random time between 15 - 60 minutes to run the task
-		intervalNum, err := rand.Int(rand.Reader, big.NewInt(45))
+		// Pick a random time between 60 - 180 minutes to run the task
+		intervalNum, err := rand.Int(rand.Reader, big.NewInt(120))
 		if err != nil {
-			a.base.Logger().Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
+			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+15) * time.Minute
-		a.base.Logger().Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
+		interval := time.Duration(intervalNum.Int64()+60) * time.Minute
+		l.Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
+		if a.base.IsLeader() {
+			l.Info("Am leader, running on startup")
+			if err := clubWorker(ctx, l, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+				l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+			}
+		}
+
+		l.Info("Starting club worker loop")
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-a.base.LeaderChange():
+				// Do nothing as this logic is handled in the outer loop
+			case <-ticker.C:
 				if !a.base.IsLeader() {
-					a.base.Logger().Info("not leader, waiting for leader change")
-					continue
-				}
-
-				a.base.Logger().Info("leader change detected, running on startup")
-				if err := clubWorker(ctx, a.base.Logger(), a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
-					a.base.Logger().Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
-					continue
-				}
-
-				a.base.Logger().Info("Starting club worker loop")
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case <-a.base.LeaderChange():
-						// Do nothing as this logic is handled in the outer loop
-					case <-ticker.C:
-						a.base.Logger().Debug("ticker ticked")
-						if err := clubWorker(ctx, a.base.Logger(), a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
-							a.base.Logger().Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
-							continue
-						}
-					}
-
-					if a.base.IsLeader() {
-						continue
-					}
-					a.base.Logger().Info("not leader, waiting for leader change")
 					break
 				}
+
+				l.Debug("ticker ticked")
+				if err := clubWorker(
+					ctx,
+					logging.LoggerWithComponent(l, "clubs-worker"),
+					a.base.NatsJetStream(),
+					a.base.WorkerPool(),
+				); err != nil {
+					l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+					continue
+				}
 			}
+
+			if a.base.IsLeader() {
+				continue
+			}
+			l.Info("not leader, waiting for leader change")
 		}
 	}
 }
@@ -118,7 +115,7 @@ func clubWorker(
 
 func getEnglandGolfClubs(ctx context.Context, l *slog.Logger, pageNum int) ([]*EnglandGolfClubResponse, error) {
 	retryClient := retryablehttp.NewClient()
-	retryClient.Logger = logging.LoggerWithComponent(l, "retryablehttp")
+	retryClient.Logger = logging.LoggerWithComponent(l, "retryablehttp-clubs")
 	retryClient.RetryMax = 3
 	client := retryClient.StandardClient()
 
