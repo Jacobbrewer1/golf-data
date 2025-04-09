@@ -31,7 +31,7 @@ func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 			return
 		}
 		interval := time.Duration(intervalNum.Int64()+60) * time.Minute
-		l.Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
+		l.Info("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
