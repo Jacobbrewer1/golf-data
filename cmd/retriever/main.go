@@ -83,6 +83,7 @@ func (a *App) Start() error {
 		),
 		web.WithIndefiniteAsyncTask("clubs-fetcher", a.clubsTask(logging.LoggerWithComponent(a.base.Logger(), "clubs-fetcher"))),
 		web.WithIndefiniteAsyncTask("courses-fetcher", a.coursesTask(logging.LoggerWithComponent(a.base.Logger(), "courses-fetcher"))),
+		web.WithIndefiniteAsyncTask("details-fetcher", a.detailsTask(logging.LoggerWithComponent(a.base.Logger(), "details-fetcher"))),
 	); err != nil {
 		a.base.Logger().Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)

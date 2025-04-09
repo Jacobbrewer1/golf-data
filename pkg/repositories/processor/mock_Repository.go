@@ -72,6 +72,66 @@ func (_m *MockRepository) CourseById(id int) (*models.Course, error) {
 	return r0, r1
 }
 
+// CourseDetailsById provides a mock function with given fields: id
+func (_m *MockRepository) CourseDetailsById(id int) (*models.CourseDetails, error) {
+	ret := _m.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CourseDetailsById")
+	}
+
+	var r0 *models.CourseDetails
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int) (*models.CourseDetails, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(int) *models.CourseDetails); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.CourseDetails)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// HolesByMarkerId provides a mock function with given fields: id
+func (_m *MockRepository) HolesByMarkerId(id int) ([]*models.Hole, error) {
+	ret := _m.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HolesByMarkerId")
+	}
+
+	var r0 []*models.Hole
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int) ([]*models.Hole, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(int) []*models.Hole); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*models.Hole)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PatchClub provides a mock function with given fields: currentClub, newClub
 func (_m *MockRepository) PatchClub(currentClub *models.Club, newClub *models.Club) error {
 	ret := _m.Called(currentClub, newClub)
@@ -108,6 +168,42 @@ func (_m *MockRepository) PatchCourse(currentCourse *models.Course, newCourse *m
 	return r0
 }
 
+// PatchDetails provides a mock function with given fields: currentDetails, newDetails
+func (_m *MockRepository) PatchDetails(currentDetails *models.CourseDetails, newDetails *models.CourseDetails) error {
+	ret := _m.Called(currentDetails, newDetails)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchDetails")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.CourseDetails, *models.CourseDetails) error); ok {
+		r0 = rf(currentDetails, newDetails)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// PatchHole provides a mock function with given fields: currentHole, newHole
+func (_m *MockRepository) PatchHole(currentHole *models.Hole, newHole *models.Hole) error {
+	ret := _m.Called(currentHole, newHole)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchHole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.Hole, *models.Hole) error); ok {
+		r0 = rf(currentHole, newHole)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SaveClub provides a mock function with given fields: club
 func (_m *MockRepository) SaveClub(club *models.Club) error {
 	ret := _m.Called(club)
@@ -137,6 +233,42 @@ func (_m *MockRepository) SaveCourse(course *models.Course) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*models.Course) error); ok {
 		r0 = rf(course)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SaveDetails provides a mock function with given fields: details
+func (_m *MockRepository) SaveDetails(details *models.CourseDetails) error {
+	ret := _m.Called(details)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveDetails")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.CourseDetails) error); ok {
+		r0 = rf(details)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SaveHole provides a mock function with given fields: holes
+func (_m *MockRepository) SaveHole(holes *models.Hole) error {
+	ret := _m.Called(holes)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveHole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.Hole) error); ok {
+		r0 = rf(holes)
 	} else {
 		r0 = ret.Error(0)
 	}

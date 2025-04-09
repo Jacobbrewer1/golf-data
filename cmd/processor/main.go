@@ -56,7 +56,24 @@ func (a *App) Start() error {
 				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
 			}
 
-			a.svc = processor.NewProcessor(a.base.Logger(), serviceDomain, clubsConsumer, coursesConsumer)
+			detailsConsumer, err := a.base.CreateNatsJetStreamConsumer(appName+"-details", "details")
+			if err != nil {
+				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
+			}
+
+			holesConsumer, err := a.base.CreateNatsJetStreamConsumer(appName+"-holes", "holes")
+			if err != nil {
+				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
+			}
+
+			a.svc = processor.NewProcessor(
+				a.base.Logger(),
+				serviceDomain,
+				clubsConsumer,
+				coursesConsumer,
+				detailsConsumer,
+				holesConsumer,
+			)
 			return nil
 		}),
 		web.WithHealthCheck(
@@ -86,6 +103,8 @@ func (a *App) Start() error {
 		),
 		web.WithIndefiniteAsyncTask("clubs-processes", a.Clubs),
 		web.WithIndefiniteAsyncTask("courses-processes", a.Courses),
+		web.WithIndefiniteAsyncTask("details-processes", a.Details),
+		web.WithIndefiniteAsyncTask("holes-processes", a.Holes),
 	); err != nil {
 		a.base.Logger().Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
@@ -100,6 +119,14 @@ func (a *App) Clubs(ctx context.Context) {
 
 func (a *App) Courses(ctx context.Context) {
 	a.svc.Courses(ctx)
+}
+
+func (a *App) Details(ctx context.Context) {
+	a.svc.Details(ctx)
+}
+
+func (a *App) Holes(ctx context.Context) {
+	a.svc.Holes(ctx)
 }
 
 func main() {
