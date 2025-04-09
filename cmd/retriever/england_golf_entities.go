@@ -91,7 +91,11 @@ type EnglandGolfResponseHole struct {
 }
 
 func (h *EnglandGolfResponseHole) ToModel(markerId int) *models.Hole {
-	holeNum, _ := strconv.Atoi(h.HoleNumStr)
+	holeNum, err := strconv.Atoi(h.HoleNumStr)
+	if err != nil {
+		log.Printf("Error converting HoleNumStr to integer: %v", err)
+		holeNum = 0 // or handle the error as appropriate
+	}
 	dbHole := &models.Hole{
 		DetailsId:      markerId,
 		Number:         holeNum,
