@@ -1,5 +1,10 @@
 package main
 
+import (
+	"crypto/rand"
+	"math/big"
+)
+
 const (
 	// baseURL is the base URL for the API
 	baseURL = "https://www.englandgolf.org/api"
@@ -12,5 +17,10 @@ const (
 )
 
 func ticketMagicNumber() int64 {
-	return int64(minTickerDurationSec + rand.Intn(maxTickerDurationSec-minTickerDurationSec+1))
+	randInt, err := rand.Int(rand.Reader, big.NewInt(maxTickerDurationSec-minTickerDurationSec+1))
+	if err != nil {
+		return minTickerDurationSec
+	}
+
+	return minTickerDurationSec + randInt.Int64()
 }
