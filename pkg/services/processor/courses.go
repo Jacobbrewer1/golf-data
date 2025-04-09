@@ -30,9 +30,9 @@ func (p *processor) Courses(ctx context.Context) {
 
 func (p *processor) processCourseHandler(courseMsg jetstream.Msg) {
 	if err := p.processCourse(courseMsg); err != nil {
-		p.l.Error("failed to process club", slog.String(logging.KeyError, err.Error()))
+		p.l.Error("failed to process course", slog.String(logging.KeyError, err.Error()))
 		if err := courseMsg.Nak(); err != nil {
-			p.l.Error("failed to nak club message", slog.String(logging.KeyError, err.Error()))
+			p.l.Error("failed to nak course message", slog.String(logging.KeyError, err.Error()))
 			return
 		}
 		return
