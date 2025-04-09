@@ -27,7 +27,7 @@ func (r *repository) CourseDetailsById(id int) (*models.CourseDetails, error) {
 		case errors.Is(err, sql.ErrNoRows):
 			return nil, ErrNoDetails
 		default:
-			return nil, fmt.Errorf("failed to get course by id: %w", err)
+			return nil, fmt.Errorf("failed to get details by id: %w", err)
 		}
 	}
 

@@ -29,7 +29,7 @@ func (p *processor) Holes(ctx context.Context) {
 }
 
 func (p *processor) processHoleHandler(msg jetstream.Msg) {
-	if err := p.processDetails(msg); err != nil {
+	if err := p.processHole(msg); err != nil {
 		p.l.Error("failed to process hole", slog.String(logging.KeyError, err.Error()))
 		if err := msg.Nak(); err != nil {
 			p.l.Error("failed to nak hole message", slog.String(logging.KeyError, err.Error()))

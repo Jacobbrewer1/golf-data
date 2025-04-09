@@ -12,6 +12,6 @@ func NewHoleMarkerId(markerId int) patcher.Wherer {
 	}
 }
 
-func (h *holeMarkerId) Where() (string, []any) {
+func (h *holeMarkerId) Where() (sqlStr string, args []any) {
 	return "t.marker_id = ?", []any{h.markerId}
 }

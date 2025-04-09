@@ -93,7 +93,7 @@ func detailsWorker(
 
 	for _, course := range courses {
 		courseId := course.Id
-		l.Debug("courseId", slog.Int("courseId", courseId))
+		l.Debug("courseId", slog.Int(logKeys.KeyCourseId, courseId))
 
 		details, err := getEnglandGolfDetails(ctx, l, courseId)
 		if err != nil {
@@ -102,7 +102,7 @@ func detailsWorker(
 		}
 
 		if len(details) == 0 {
-			l.Debug("no details found", slog.Int("course_id", courseId))
+			l.Debug("no details found", slog.Int(logKeys.KeyCourseId, courseId))
 			continue
 		}
 
@@ -133,7 +133,7 @@ func detailsWorker(
 				holes,
 			)
 
-			if err := wp.BlockingSchedule(holesRunnable); err != nil {
+			if err := wp.BlockingSchedule(holesRunnable); err != nil { // nolint:revive // Traditional error handling
 				l.Error("failed to schedule holes runnable", slog.String(logging.KeyError, err.Error()))
 				continue
 			}
