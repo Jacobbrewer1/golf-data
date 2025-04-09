@@ -148,7 +148,7 @@ func getEnglandGolfDetails(ctx context.Context, l *slog.Logger, courseId int) ([
 	retryClient.RetryMax = 3
 	client := retryClient.StandardClient()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/clubs/getCourses", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/clubs/getMarkers", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
