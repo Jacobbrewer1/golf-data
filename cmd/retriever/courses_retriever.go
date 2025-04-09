@@ -30,7 +30,7 @@ func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+minTickerDurationSec) * time.Minute
+		interval := time.Duration(intervalNum.Int64()+60) * time.Minute // 60 minutes minimum
 		l.Info("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
