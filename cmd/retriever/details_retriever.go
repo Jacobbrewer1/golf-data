@@ -25,7 +25,6 @@ import (
 
 func (a *App) detailsTask(l *slog.Logger) web.AsyncTaskFunc {
 	return func(ctx context.Context) {
-		// Pick a random time between 60 - 180 minutes to run the task
 		intervalNum, err := rand.Int(rand.Reader, big.NewInt(ticketMagicNumber()))
 		if err != nil {
 			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
