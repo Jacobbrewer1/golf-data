@@ -42,6 +42,36 @@ func (_m *MockRepository) ClubById(id int) (*models.Club, error) {
 	return r0, r1
 }
 
+// CourseById provides a mock function with given fields: id
+func (_m *MockRepository) CourseById(id int) (*models.Course, error) {
+	ret := _m.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CourseById")
+	}
+
+	var r0 *models.Course
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int) (*models.Course, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(int) *models.Course); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.Course)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PatchClub provides a mock function with given fields: currentClub, newClub
 func (_m *MockRepository) PatchClub(currentClub *models.Club, newClub *models.Club) error {
 	ret := _m.Called(currentClub, newClub)
@@ -60,6 +90,24 @@ func (_m *MockRepository) PatchClub(currentClub *models.Club, newClub *models.Cl
 	return r0
 }
 
+// PatchCourse provides a mock function with given fields: currentCourse, newCourse
+func (_m *MockRepository) PatchCourse(currentCourse *models.Course, newCourse *models.Course) error {
+	ret := _m.Called(currentCourse, newCourse)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchCourse")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.Course, *models.Course) error); ok {
+		r0 = rf(currentCourse, newCourse)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SaveClub provides a mock function with given fields: club
 func (_m *MockRepository) SaveClub(club *models.Club) error {
 	ret := _m.Called(club)
@@ -71,6 +119,24 @@ func (_m *MockRepository) SaveClub(club *models.Club) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*models.Club) error); ok {
 		r0 = rf(club)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SaveCourse provides a mock function with given fields: course
+func (_m *MockRepository) SaveCourse(course *models.Course) error {
+	ret := _m.Called(course)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveCourse")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.Course) error); ok {
+		r0 = rf(course)
 	} else {
 		r0 = ret.Error(0)
 	}
