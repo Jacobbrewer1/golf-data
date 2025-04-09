@@ -162,7 +162,7 @@ func getEnglandGolfDetails(ctx context.Context, l *slog.Logger, courseId int) ([
 	req.URL.RawQuery = q.Encode()
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get courses: %w", err)
+		return nil, fmt.Errorf("failed to get details: %w", err)
 	}
 
 	defer func() {
@@ -172,7 +172,7 @@ func getEnglandGolfDetails(ctx context.Context, l *slog.Logger, courseId int) ([
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get courses: %s", resp.Status)
+		return nil, fmt.Errorf("failed to get details: %s", resp.Status)
 	}
 
 	details := make([]*EnglandGolfCourseDetailsResponse, 0)
