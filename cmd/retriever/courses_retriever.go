@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -33,10 +34,12 @@ func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		//l.Info("leader change detected, running on startup")
-		//if err := courseWorker(ctx, l, a.r, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
-		//	l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
-		//}
+		if a.base.IsLeader() {
+			l.Info("Am leader, running on startup")
+			if err := courseWorker(ctx, l, a.r, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+				l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+			}
+		}
 
 		l.Info("Starting course worker loop")
 		for {
@@ -58,7 +61,7 @@ func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 					a.base.NatsJetStream(),
 					a.base.WorkerPool(),
 				); err != nil {
-					l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+					l.Error("failed to run course worker", slog.String(logging.KeyError, err.Error()))
 					continue
 				}
 			}
@@ -79,8 +82,11 @@ func courseWorker(
 	wp workerpool.Pool,
 ) error {
 	clubs, err := r.GetClubs()
-	if err != nil {
-		return fmt.Errorf("failed to get clubs: %w", err)
+	if err != nil && !errors.Is(err, repo.ErrNoClubs) {
+		return fmt.Errorf("failed to get courses: %w", err)
+	} else if len(clubs) == 0 {
+		l.Info("no clubs found, skipping course worker")
+		return nil
 	}
 
 	for _, club := range clubs {

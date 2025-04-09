@@ -33,15 +33,17 @@ func (a *App) clubsTask(l *slog.Logger) web.AsyncTaskFunc {
 			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+15) * time.Minute
+		interval := time.Duration(intervalNum.Int64()+15) * time.Second
 		l.Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		//l.Info("leader change detected, running on startup")
-		//if err := clubWorker(ctx, l, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
-		//	l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
-		//}
+		if a.base.IsLeader() {
+			l.Info("Am leader, running on startup")
+			if err := clubWorker(ctx, l, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
+				l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+			}
+		}
 
 		l.Info("Starting club worker loop")
 		for {

@@ -46,12 +46,12 @@ func (a *App) Start() error {
 			serviceRepo := repo.NewRepository(a.base.DBConn())
 			serviceDomain := domain.NewDomain(serviceRepo)
 
-			clubsConsumer, err := a.base.CreateNatsJetStreamConsumer(appName, "clubs")
+			clubsConsumer, err := a.base.CreateNatsJetStreamConsumer(appName+"-clubs", "clubs")
 			if err != nil {
 				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
 			}
 
-			coursesConsumer, err := a.base.CreateNatsJetStreamConsumer(appName, "courses")
+			coursesConsumer, err := a.base.CreateNatsJetStreamConsumer(appName+"-courses", "courses")
 			if err != nil {
 				return fmt.Errorf("failed to create nats jetstream consumer: %w", err)
 			}

@@ -13,7 +13,7 @@ import (
 )
 
 func (p *processor) Courses(ctx context.Context) {
-	cc, err := p.coursesConsumer.Consume(p.processClubHandler)
+	cc, err := p.coursesConsumer.Consume(p.processCourseHandler)
 	if err != nil {
 		p.l.Error("failed to consume courses", slog.String(logging.KeyError, err.Error()))
 		return
