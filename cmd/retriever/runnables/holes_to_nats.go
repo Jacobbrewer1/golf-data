@@ -47,6 +47,6 @@ func (c *publishHolesToNats) Run() {
 			return
 		}
 
-		c.l.Debug("hole inserted to nats", slog.Int(logKeys.KeyCourseId, hole.CourseId))
+		c.l.Debug("hole inserted to nats", slog.Int(logKeys.KeyDetailsId, hole.DetailsId))
 	}
 }

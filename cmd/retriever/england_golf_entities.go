@@ -93,7 +93,7 @@ type EnglandGolfResponseHole struct {
 func (h *EnglandGolfResponseHole) ToModel(markerId int) *models.Hole {
 	holeNum, _ := strconv.Atoi(h.HoleNumStr)
 	dbHole := &models.Hole{
-		CourseId:       markerId,
+		DetailsId:      markerId,
 		Number:         holeNum,
 		Par:            h.Par,
 		Stroke:         h.Stroke,
