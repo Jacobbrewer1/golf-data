@@ -25,12 +25,12 @@ import (
 func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 	return func(ctx context.Context) {
 		// Pick a random time between 60 - 180 minutes to run the task
-		intervalNum, err := rand.Int(rand.Reader, big.NewInt(120))
+		intervalNum, err := rand.Int(rand.Reader, big.NewInt(ticketMagicNumber()))
 		if err != nil {
 			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+60) * time.Minute
+		interval := time.Duration(intervalNum.Int64()+minTickerDurationSec) * time.Minute
 		l.Info("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -124,7 +124,7 @@ func getEnglandGolfCourses(ctx context.Context, l *slog.Logger, clubId int) ([]*
 	retryClient.RetryMax = 3
 	client := retryClient.StandardClient()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.englandgolf.org/api/clubs/getCourses", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/clubs/getCourses", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
