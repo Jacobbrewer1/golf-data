@@ -12,5 +12,5 @@ const (
 )
 
 func ticketMagicNumber() int64 {
-	return int64(minTickerDurationSec + maxTickerDurationSec)
+	return int64(minTickerDurationSec + rand.Intn(maxTickerDurationSec-minTickerDurationSec+1))
 }
