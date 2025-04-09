@@ -27,13 +27,13 @@ const (
 
 func (a *App) clubsTask(l *slog.Logger) web.AsyncTaskFunc {
 	return func(ctx context.Context) {
-		// Pick a random time between 15 - 60 minutes to run the task
-		intervalNum, err := rand.Int(rand.Reader, big.NewInt(45))
+		// Pick a random time between 60 - 180 minutes to run the task
+		intervalNum, err := rand.Int(rand.Reader, big.NewInt(120))
 		if err != nil {
 			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+15) * time.Second
+		interval := time.Duration(intervalNum.Int64()+60) * time.Minute
 		l.Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()

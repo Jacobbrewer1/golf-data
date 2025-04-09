@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -23,13 +24,13 @@ import (
 
 func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 	return func(ctx context.Context) {
-		// Pick a random time between 15 - 60 minutes to run the task
-		intervalNum, err := rand.Int(rand.Reader, big.NewInt(45))
+		// Pick a random time between 60 - 180 minutes to run the task
+		intervalNum, err := rand.Int(rand.Reader, big.NewInt(120))
 		if err != nil {
 			l.Error("failed to generate random interval", slog.String(logging.KeyError, err.Error()))
 			return
 		}
-		interval := time.Duration(intervalNum.Int64()+15) * time.Second // TODO: Change to minutes
+		interval := time.Duration(intervalNum.Int64()+60) * time.Minute
 		l.Debug("generated random interval", slog.String(logKeys.KeyInterval, interval.String()))
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -90,7 +91,7 @@ func courseWorker(
 	}
 
 	for _, club := range clubs {
-		l.Debug("processing club", slog.String(logKeys.KeyClubId, fmt.Sprintf("%d", club.Id)))
+		l.Debug("processing club", slog.String(logKeys.KeyClubId, strconv.Itoa(club.Id)))
 		courses, err := getEnglandGolfCourses(ctx, l, club.Id)
 		if err != nil {
 			return fmt.Errorf("failed to get courses: %w", err)
@@ -109,7 +110,7 @@ func courseWorker(
 				continue
 			}
 
-			l.Debug("course runnable scheduled", slog.String(logKeys.KeyClubId, fmt.Sprintf("%d", club.Id)))
+			l.Debug("course runnable scheduled", slog.String(logKeys.KeyClubId, strconv.Itoa(club.Id)))
 		}
 	}
 
@@ -129,7 +130,7 @@ func getEnglandGolfCourses(ctx context.Context, l *slog.Logger, clubId int) ([]*
 	}
 
 	q := req.URL.Query()
-	q.Add("clubId", fmt.Sprintf("%d", clubId))
+	q.Add("clubId", strconv.Itoa(clubId))
 	req.URL.RawQuery = q.Encode()
 	resp, err := client.Do(req)
 	if err != nil {
