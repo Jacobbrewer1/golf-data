@@ -38,7 +38,7 @@ func (a *App) coursesTask(l *slog.Logger) web.AsyncTaskFunc {
 		if a.base.IsLeader() {
 			l.Info("Am leader, running on startup")
 			if err := courseWorker(ctx, l, a.r, a.base.NatsJetStream(), a.base.WorkerPool()); err != nil {
-				l.Error("failed to run club worker", slog.String(logging.KeyError, err.Error()))
+				l.Error("failed to run course worker", slog.String(logging.KeyError, err.Error()))
 			}
 		}
 
