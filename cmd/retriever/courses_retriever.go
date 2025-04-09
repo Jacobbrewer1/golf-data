@@ -84,7 +84,7 @@ func courseWorker(
 ) error {
 	clubs, err := r.GetClubs()
 	if err != nil && !errors.Is(err, repo.ErrNoClubs) {
-		return fmt.Errorf("failed to get courses: %w", err)
+		return fmt.Errorf("failed to get clubs: %w", err)
 	} else if len(clubs) == 0 {
 		l.Info("no clubs found, skipping course worker")
 		return nil
