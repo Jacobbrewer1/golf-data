@@ -71,12 +71,16 @@ components:
         address3:
           type: string
           example: Example County
-        city:
-          type: string
-          example: Example City
         postcode:
           type: string
           example: EX1 1MP
+      required:
+        - id
+        - name
+        - address1
+        - address2
+        - address3
+        - postcode
 
   requestBodies: { }
 
