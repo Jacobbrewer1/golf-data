@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Result is the result of a health check.
 type Result struct {
 	mtx *sync.RWMutex
 
@@ -15,21 +16,22 @@ type Result struct {
 	Timestamp *time.Time `json:"timestamp,omitempty"`
 
 	// Details is the details of the check.
-	Details map[string]Result `json:"details,omitempty"`
+	Details map[string]*Result `json:"details,omitempty"`
 
 	// Error is the error returned by the check.
 	Error string `json:"error,omitempty"`
 }
 
-func newResult() *Result {
+// NewResult creates a new Result with initialized and default fields.
+func NewResult() *Result {
 	return &Result{
-		mtx:       new(sync.RWMutex),
-		Status:    StatusUnknown,
-		Details:   make(map[string]Result),
-		Timestamp: nil,
+		mtx:     new(sync.RWMutex),
+		Status:  StatusUnknown,
+		Details: make(map[string]*Result),
 	}
 }
 
+// SetTimestamp sets the timestamp and is thread-safe.
 func (r *Result) SetTimestamp(t time.Time) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -41,6 +43,8 @@ func (r *Result) SetTimestamp(t time.Time) {
 	*r.Timestamp = t
 }
 
+// SetStatus sets the status and is thread-safe.
+// It only sets the status if it is worse than the current status.
 func (r *Result) SetStatus(status Status) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -51,12 +55,13 @@ func (r *Result) SetStatus(status Status) {
 	}
 }
 
-func (r *Result) addDetail(name string, result Result) {
+// addDetail adds a detail to the result and is thread-safe.
+func (r *Result) addDetail(name string, result *Result) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
 	if r.Details == nil {
-		r.Details = make(map[string]Result)
+		r.Details = make(map[string]*Result)
 	}
 
 	r.Details[name] = result

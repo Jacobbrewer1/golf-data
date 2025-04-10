@@ -21,7 +21,7 @@ on:
         type: choice
         options:
           - 'all'
-          - 'data-api'
+          - 'api'
           - 'retriever'
       helm-branch:
         description: 'Helm branch to deploy'

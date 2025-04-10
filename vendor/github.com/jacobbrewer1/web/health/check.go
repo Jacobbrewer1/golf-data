@@ -6,8 +6,10 @@ import (
 	"time"
 )
 
+// CheckFunc is a function that performs the check.
 type CheckFunc = func(ctx context.Context) error
 
+// Check is a struct that represents a health check.
 type Check struct {
 	// name is the name of the check.
 	name string
@@ -31,7 +33,7 @@ type Check struct {
 	state *State
 }
 
-// NewCheck creates a new Check
+// NewCheck creates a new Check. Every check should have a unique name.
 //
 // You are able to return custom statuses by returning a StatusError from the check function. This way you can perform
 // checks that return a status other than up or down. For example, you can return a status of "degraded" if the check
@@ -51,13 +53,18 @@ func NewCheck(name string, checkerFunc CheckFunc, options ...CheckOption) *Check
 	return c
 }
 
+// String returns the name of the check.
 func (c *Check) String() string {
 	return c.name
 }
 
 // Check performs the check and updates the state of the check.
 func (c *Check) Check(ctx context.Context) error {
-	now := Timestamp()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	now := timestamp()
 	c.state.lastCheckTime = now
 
 	var (
@@ -90,6 +97,10 @@ func (c *Check) Check(ctx context.Context) error {
 
 		statusErr := new(StatusError)
 		if errors.As(err, &statusErr) {
+			if !statusErr.Status.IsValid() {
+				statusErr.Status = StatusUnknown
+			}
+
 			newStatus = statusErr.Status
 		}
 
@@ -98,12 +109,12 @@ func (c *Check) Check(ctx context.Context) error {
 
 		c.state.checkErr = err
 		return err
-	} else {
-		newStatus = StatusUp
-		c.state.lastSuccess = now
-		c.state.contiguousFails = 0
-		c.state.checkErr = nil
 	}
+
+	newStatus = StatusUp
+	c.state.lastSuccess = now
+	c.state.contiguousFails = 0
+	c.state.checkErr = nil
 
 	return nil
 }

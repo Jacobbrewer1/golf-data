@@ -413,3 +413,7 @@ func (a *App) CreateNatsJetStreamConsumer(consumerName, subjectFilter string) (j
 
 	return cons, nil
 }
+
+func (a *App) HashBucket() cache.HashBucket {
+	return a.serviceEndpointHashBucket
+}

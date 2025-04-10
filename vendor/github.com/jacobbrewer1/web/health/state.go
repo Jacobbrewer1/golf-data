@@ -2,6 +2,7 @@ package health
 
 import "time"
 
+// State is the state of the health check.
 type State struct {
 	// lastCheckTime is the last time the check was performed.
 	lastCheckTime time.Time
