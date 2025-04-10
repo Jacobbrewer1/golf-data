@@ -17,9 +17,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// serviceEndpointHashBucket represents a mechanism which determine whether the current application instance should process
+// ServiceEndpointHashBucket represents a mechanism which determines whether the current application instance should process
 // a particular key. The bucket size is determined by the number of active endpoints in the supplied Kubernetes service.
-type serviceEndpointHashBucket struct {
+type ServiceEndpointHashBucket struct {
 	mut               sync.Mutex
 	hr                *hashring.HashRing
 	l                 *slog.Logger
@@ -38,10 +38,10 @@ func NewServiceEndpointHashBucket(
 	serviceName string,
 	serviceNamespace string,
 	thisPod string,
-) HashBucket {
+) *ServiceEndpointHashBucket {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, 10*time.Second)
 	endpointsInformer := informerFactory.Core().V1().Endpoints().Informer()
-	return &serviceEndpointHashBucket{
+	return &ServiceEndpointHashBucket{
 		l:                 l,
 		k:                 kubeClient,
 		appName:           serviceName,
@@ -53,7 +53,7 @@ func NewServiceEndpointHashBucket(
 }
 
 // Start starts the hash bucket processing.
-func (sb *serviceEndpointHashBucket) Start(ctx context.Context) error {
+func (sb *ServiceEndpointHashBucket) Start(ctx context.Context) error {
 	currentEndpoints, err := sb.k.CoreV1().Endpoints(sb.appNamespace).Get(ctx, sb.appName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error getting initial endpoints: %w", err)
@@ -76,7 +76,7 @@ func (sb *serviceEndpointHashBucket) Start(ctx context.Context) error {
 }
 
 // InBucket returns whether the supplied key is processed by this endpoint.
-func (sb *serviceEndpointHashBucket) InBucket(key string) bool {
+func (sb *ServiceEndpointHashBucket) InBucket(key string) bool {
 	sb.mut.Lock()
 	defer sb.mut.Unlock()
 
@@ -86,7 +86,7 @@ func (sb *serviceEndpointHashBucket) InBucket(key string) bool {
 
 // onEndpointUpdate is called when a change to an endpoint is made. If the endpoint that has changed is
 // related to this service, the internal hashring is updated to represent the new set of nodes.
-func (sb *serviceEndpointHashBucket) onEndpointUpdate(oldEndpoints, newEndpoints any) {
+func (sb *ServiceEndpointHashBucket) onEndpointUpdate(oldEndpoints, newEndpoints any) {
 	coreOldEndpoints, ok := oldEndpoints.(*corev1.Endpoints)
 	if !ok {
 		return

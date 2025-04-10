@@ -171,6 +171,7 @@ github.com/jacobbrewer1/goredis
 github.com/jacobbrewer1/goschema/usql
 # github.com/jacobbrewer1/pagefilter v0.1.8
 ## explicit; go 1.24
+github.com/jacobbrewer1/pagefilter
 github.com/jacobbrewer1/pagefilter/common
 # github.com/jacobbrewer1/patcher v0.1.21
 ## explicit; go 1.24
@@ -187,7 +188,7 @@ github.com/jacobbrewer1/utils
 ## explicit; go 1.24
 github.com/jacobbrewer1/vaulty
 github.com/jacobbrewer1/vaulty/repositories
-# github.com/jacobbrewer1/web v0.0.5-0.20250407090645-85c5ea3a4bef
+# github.com/jacobbrewer1/web v0.0.5-0.20250410100548-e88edd817616
 ## explicit; go 1.24
 github.com/jacobbrewer1/web
 github.com/jacobbrewer1/web/cache

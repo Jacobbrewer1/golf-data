@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/jacobbrewer1/web/logging"
@@ -32,6 +33,7 @@ const (
 	StatusUnknown
 )
 
+// IsValid checks if the Status is valid.
 func (s Status) IsValid() bool {
 	switch s {
 	case StatusUp, StatusDown, StatusDegraded, StatusUnknown:
@@ -40,6 +42,7 @@ func (s Status) IsValid() bool {
 	return false
 }
 
+// String returns the string representation of the Status.
 func (s Status) String() string {
 	switch s {
 	case StatusUp:
@@ -55,7 +58,12 @@ func (s Status) String() string {
 	}
 }
 
+// MarshalJSON marshals the Status to JSON as a string.
 func (s Status) MarshalJSON() ([]byte, error) {
+	if !s.IsValid() {
+		return nil, fmt.Errorf("%s is not a valid status", s)
+	}
+
 	buf := bytes.NewBuffer(nil)
 	if err := json.NewEncoder(buf).Encode(s.String()); err != nil {
 		return nil, err
@@ -63,6 +71,20 @@ func (s Status) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// StandardStatusListener is a standard implementation of the StatusListenerFunc that logs the
+// status change to the provided logger.
+//
+// Note: This is not implemented into the health check itself and you will need to
+// implement this yourself if you want to use it. This can be done by using the
+// WithCheckOnStatusChange option when creating a new check.
+//
+// Example:
+//
+//	health.NewCheck("example", func(ctx context.Context) error {
+//		return nil
+//	},
+//		health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(l, "health-check"))),
+//	)
 func StandardStatusListener(l *slog.Logger) StatusListenerFunc {
 	return func(ctx context.Context, name string, state State) {
 		l.Info("health check status changed",

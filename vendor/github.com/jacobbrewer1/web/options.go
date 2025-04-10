@@ -178,12 +178,16 @@ func WithLeaderElection(lockName string) StartOption {
 // WithHealthCheck is a StartOption that sets up the health2 check.
 func WithHealthCheck(checks ...*health.Check) StartOption {
 	return func(a *App) error {
-		checkerOpts := make([]health.CheckerOption, 0)
-		for _, check := range checks {
-			checkerOpts = append(checkerOpts, health.WithCheckerCheck(check))
+		checker, err := health.NewChecker()
+		if err != nil {
+			return fmt.Errorf("error creating health checker: %w", err)
 		}
 
-		checker := health.NewChecker(checkerOpts...)
+		for _, check := range checks {
+			if err := checker.AddCheck(check); err != nil {
+				return fmt.Errorf("error adding health check %s: %w", check.String(), err)
+			}
+		}
 
 		a.servers.Store("health", &http.Server{
 			Addr:              fmt.Sprintf(":%d", HealthPort),

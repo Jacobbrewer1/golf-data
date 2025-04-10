@@ -10,21 +10,8 @@ type MockCheckerOption struct {
 }
 
 // Execute provides a mock function with given fields: _a0
-func (_m *MockCheckerOption) Execute(_a0 *checker) error {
-	ret := _m.Called(_a0)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Execute")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*checker) error); ok {
-		r0 = rf(_a0)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *MockCheckerOption) Execute(_a0 *Checker) {
+	_m.Called(_a0)
 }
 
 // NewMockCheckerOption creates a new instance of MockCheckerOption. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

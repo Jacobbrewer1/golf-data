@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	appName = "data-api"
+	appName = "api"
 )
 
 func main() {
