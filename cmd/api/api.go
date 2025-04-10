@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gorilla/mux"
-	api "github.com/jacobbrewer1/golf-data/pkg/apis/specs/dataapi"
-	svc "github.com/jacobbrewer1/golf-data/pkg/services/dataapi"
+	"github.com/jacobbrewer1/golf-data/pkg/apis/specs/api"
+	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/api"
+	apiSvc "github.com/jacobbrewer1/golf-data/pkg/services/api"
+	"github.com/jacobbrewer1/golf-data/pkg/services/api/domain"
 	"github.com/jacobbrewer1/web"
+	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
 )
 
@@ -29,16 +33,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := a.Start(); err != nil {
+	r := mux.NewRouter()
+	if err := a.Start(
+		web.WithVaultClient(),
+		web.WithDatabaseFromVault(),
+		web.WithDependencyBootstrap(func(ctx context.Context) error {
+			svcRepo := repo.NewRepository(a.DBConn())
+			dom := domain.NewDomain(svcRepo)
+			svc := apiSvc.NewService(dom)
+			api.RegisterUnauthedHandlers(r, svc,
+				api.WithLogger(logging.LoggerWithComponent(l, "gateway")),
+			)
+			return nil
+		}),
+		web.WithHealthCheck(
+			health.NewCheck("database", func(ctx context.Context) error {
+				if err := a.DBConn().PingContext(ctx); err != nil {
+					return err
+				}
+				return nil
+			},
+				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(l, "health-status"))),
+			),
+		),
+	); err != nil {
 		l.Error("failed to start web app", slog.String(logging.KeyError, err.Error()))
 		os.Exit(1)
 	}
-
-	r := mux.NewRouter()
-	service := svc.NewService()
-	api.RegisterUnauthedHandlers(r, service,
-		api.WithLogger(l),
-	)
 
 	if err := a.StartServer("api-server", &http.Server{
 		Addr:              ":8080",
