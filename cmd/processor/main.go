@@ -41,7 +41,7 @@ func (a *App) Start() error {
 		web.WithVaultClient(),
 		web.WithDatabaseFromVault(),
 		web.WithInClusterNatsClient(),
-		web.WithNatsJetStream("golf-data", []string{"clubs", "courses"}),
+		web.WithNatsJetStream("golf-data", []string{"clubs", "courses", "details", "holes"}),
 		web.WithDependencyBootstrap(func(ctx context.Context) error {
 			serviceRepo := repo.NewRepository(a.base.DBConn())
 			serviceDomain := domain.NewDomain(serviceRepo)

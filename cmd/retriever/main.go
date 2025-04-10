@@ -43,7 +43,7 @@ func (a *App) Start() error {
 		web.WithInClusterNatsClient(),
 		web.WithVaultClient(),
 		web.WithDatabaseFromVault(),
-		web.WithNatsJetStream("golf-data", []string{"clubs", "courses"}),
+		web.WithNatsJetStream("golf-data", []string{"clubs", "courses", "details", "holes"}),
 		web.WithDependencyBootstrap(func(ctx context.Context) error {
 			a.r = repo.NewRepository(a.base.DBConn())
 			return nil
