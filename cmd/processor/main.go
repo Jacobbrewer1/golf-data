@@ -100,6 +100,14 @@ func (a *App) Start() error {
 			},
 				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(a.base.Logger(), "health-check"))),
 			),
+			health.NewCheck("vault", func(ctx context.Context) error {
+				if _, err := a.base.VaultClient().Client().Auth().Token().LookupSelf(); err != nil {
+					return err
+				}
+				return nil
+			},
+				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(a.base.Logger(), "health-check"))),
+			),
 		),
 		web.WithIndefiniteAsyncTask("clubs-processes", a.Clubs),
 		web.WithIndefiniteAsyncTask("courses-processes", a.Courses),

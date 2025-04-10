@@ -53,7 +53,15 @@ func main() {
 				}
 				return nil
 			},
-				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(l, "health-status"))),
+				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(l, "health-check"))),
+			),
+			health.NewCheck("vault", func(ctx context.Context) error {
+				if _, err := a.VaultClient().Client().Auth().Token().LookupSelf(); err != nil {
+					return err
+				}
+				return nil
+			},
+				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(l, "health-check"))),
 			),
 		),
 	); err != nil {
