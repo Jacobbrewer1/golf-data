@@ -11,7 +11,7 @@ import (
 )
 
 func (d *domain) GetClubs(paginatorDetails *pagefilter.PaginatorDetails, params *api.GetClubsParams) (*api.GetClubsResponse, error) {
-	filter := d.parseGetClubFilters(params)
+	filter := parseGetClubFilters(params)
 
 	clubs, err := d.r.GetClubs(paginatorDetails, filter)
 	if err != nil {
@@ -28,7 +28,7 @@ func (d *domain) GetClubs(paginatorDetails *pagefilter.PaginatorDetails, params 
 
 	respClubs := make([]api.Club, 0)
 	for _, club := range clubs.Items {
-		respClubs = append(respClubs, *d.mapClubToModel(club))
+		respClubs = append(respClubs, *mapClubToAPI(club))
 	}
 
 	return &api.GetClubsResponse{
@@ -37,7 +37,7 @@ func (d *domain) GetClubs(paginatorDetails *pagefilter.PaginatorDetails, params 
 	}, nil
 }
 
-func (d *domain) parseGetClubFilters(params *api.GetClubsParams) *repo.GetClubsFilters {
+func parseGetClubFilters(params *api.GetClubsParams) *repo.GetClubsFilters {
 	f := new(repo.GetClubsFilters)
 
 	if params.Name != nil {
@@ -47,7 +47,7 @@ func (d *domain) parseGetClubFilters(params *api.GetClubsParams) *repo.GetClubsF
 	return f
 }
 
-func (d *domain) mapClubToModel(club *models.Club) *api.Club {
+func mapClubToAPI(club *models.Club) *api.Club {
 	return &api.Club{
 		Address1: club.Address1,
 		Address2: club.Address2,

@@ -27,6 +27,18 @@ type ServerInterface interface {
 	// Get all clubs
 	// GetClubs (GET /clubs)
 	GetClubs(l *slog.Logger, r *http.Request, params *GetClubsParams) (*GetClubsResponse, error)
+
+	// Get all courses for a club
+	// GetCourses (GET /clubs/{club_id}/courses)
+	GetCourses(l *slog.Logger, r *http.Request, clubId int64, params *GetCoursesParams) (*GetCoursesResponse, error)
+
+	// Get all markers for a course
+	// GetMarkers (GET /courses/{course_id}/markers)
+	GetMarkers(l *slog.Logger, r *http.Request, courseId int64, params *GetMarkersParams) (*GetMarkersResponse, error)
+
+	// Get all holes for a marker
+	// GetHoles (GET /markers/{marker_id}/holes)
+	GetHoles(l *slog.Logger, r *http.Request, markerId int64, params *GetHolesParams) (*GetHolesResponse, error)
 }
 
 const (
@@ -57,6 +69,66 @@ var (
 	GetClubsResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "getclubs_response_size_bytes",
 		Help:    "Response size in bytes for GetClubs",
+		Buckets: prometheus.DefBuckets,
+	}, []string{"code", "method"})
+
+	// GetCoursesTotalRequests is a counter for the total number of requests for GetCourses.
+	GetCoursesTotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "getcourses_total_requests",
+		Help: "Total number of requests for GetCourses",
+	}, []string{"code", "method"})
+
+	// GetCoursesRequestDuration is a histogram for the request duration for GetCourses.
+	GetCoursesRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "getcourses_request_duration_seconds",
+		Help:    "Request duration in seconds for GetCourses",
+		Buckets: prometheus.DefBuckets,
+	}, []string{"code", "method"})
+
+	// GetCoursesResponseSize is a histogram for the response size for GetCourses.
+	GetCoursesResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "getcourses_response_size_bytes",
+		Help:    "Response size in bytes for GetCourses",
+		Buckets: prometheus.DefBuckets,
+	}, []string{"code", "method"})
+
+	// GetMarkersTotalRequests is a counter for the total number of requests for GetMarkers.
+	GetMarkersTotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "getmarkers_total_requests",
+		Help: "Total number of requests for GetMarkers",
+	}, []string{"code", "method"})
+
+	// GetMarkersRequestDuration is a histogram for the request duration for GetMarkers.
+	GetMarkersRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "getmarkers_request_duration_seconds",
+		Help:    "Request duration in seconds for GetMarkers",
+		Buckets: prometheus.DefBuckets,
+	}, []string{"code", "method"})
+
+	// GetMarkersResponseSize is a histogram for the response size for GetMarkers.
+	GetMarkersResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "getmarkers_response_size_bytes",
+		Help:    "Response size in bytes for GetMarkers",
+		Buckets: prometheus.DefBuckets,
+	}, []string{"code", "method"})
+
+	// GetHolesTotalRequests is a counter for the total number of requests for GetHoles.
+	GetHolesTotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "getholes_total_requests",
+		Help: "Total number of requests for GetHoles",
+	}, []string{"code", "method"})
+
+	// GetHolesRequestDuration is a histogram for the request duration for GetHoles.
+	GetHolesRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "getholes_request_duration_seconds",
+		Help:    "Request duration in seconds for GetHoles",
+		Buckets: prometheus.DefBuckets,
+	}, []string{"code", "method"})
+
+	// GetHolesResponseSize is a histogram for the response size for GetHoles.
+	GetHolesResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "getholes_response_size_bytes",
+		Help:    "Response size in bytes for GetHoles",
 		Buckets: prometheus.DefBuckets,
 	}, []string{"code", "method"})
 )
@@ -224,6 +296,378 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 
 	// Invoke the callback with all the unmarshalled arguments
 	resp, err := siw.handler.GetClubs(l, r, params)
+	if err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, err)
+		return
+	}
+
+	w.Header().Set(uhttp.HeaderContentType, "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, err)
+		return
+	}
+}
+
+// GetCourses operation middleware
+func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Request) {
+	l := logging.LoggerFromRequest(siw.l, r)
+	l = l.With(
+		slog.String(logging.KeyHandler, "GetCourses"),
+	)
+
+	ctx := r.Context()
+	cw := uhttp.NewResponseWriter(w,
+		uhttp.WithDefaultStatusCode(http.StatusOK),
+		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
+		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
+	)
+
+	// ------------- Path parameter "club_id" -------------
+	var clubId int64
+	if err := runtime.BindStyledParameterWithOptions(
+		"simple",
+		"club_id",
+		mux.Vars(r)["club_id"],
+		&clubId,
+		runtime.BindStyledParameterOptions{Explode: false, Required: true},
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "club_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	params := new(GetCoursesParams)
+
+	// ------------- Optional query parameter "limit" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"limit",
+		r.URL.Query(),
+		&params.Limit,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "last_val" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"last_val",
+		r.URL.Query(),
+		&params.LastVal,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_val", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "last_id" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"last_id",
+		r.URL.Query(),
+		&params.LastId,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_id", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"offset",
+		r.URL.Query(),
+		&params.Offset,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort_by" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"sort_by",
+		r.URL.Query(),
+		&params.SortBy,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort_dir" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"sort_dir",
+		r.URL.Query(),
+		&params.SortDir,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
+		return
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	resp, err := siw.handler.GetCourses(l, r, clubId, params)
+	if err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, err)
+		return
+	}
+
+	w.Header().Set(uhttp.HeaderContentType, "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, err)
+		return
+	}
+}
+
+// GetMarkers operation middleware
+func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Request) {
+	l := logging.LoggerFromRequest(siw.l, r)
+	l = l.With(
+		slog.String(logging.KeyHandler, "GetMarkers"),
+	)
+
+	ctx := r.Context()
+	cw := uhttp.NewResponseWriter(w,
+		uhttp.WithDefaultStatusCode(http.StatusOK),
+		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
+		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
+	)
+
+	// ------------- Path parameter "course_id" -------------
+	var courseId int64
+	if err := runtime.BindStyledParameterWithOptions(
+		"simple",
+		"course_id",
+		mux.Vars(r)["course_id"],
+		&courseId,
+		runtime.BindStyledParameterOptions{Explode: false, Required: true},
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "course_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	params := new(GetMarkersParams)
+
+	// ------------- Optional query parameter "limit" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"limit",
+		r.URL.Query(),
+		&params.Limit,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "last_val" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"last_val",
+		r.URL.Query(),
+		&params.LastVal,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_val", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "last_id" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"last_id",
+		r.URL.Query(),
+		&params.LastId,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_id", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"offset",
+		r.URL.Query(),
+		&params.Offset,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort_by" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"sort_by",
+		r.URL.Query(),
+		&params.SortBy,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort_dir" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"sort_dir",
+		r.URL.Query(),
+		&params.SortDir,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
+		return
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	resp, err := siw.handler.GetMarkers(l, r, courseId, params)
+	if err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, err)
+		return
+	}
+
+	w.Header().Set(uhttp.HeaderContentType, "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, err)
+		return
+	}
+}
+
+// GetHoles operation middleware
+func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Request) {
+	l := logging.LoggerFromRequest(siw.l, r)
+	l = l.With(
+		slog.String(logging.KeyHandler, "GetHoles"),
+	)
+
+	ctx := r.Context()
+	cw := uhttp.NewResponseWriter(w,
+		uhttp.WithDefaultStatusCode(http.StatusOK),
+		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
+		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
+	)
+
+	// ------------- Path parameter "marker_id" -------------
+	var markerId int64
+	if err := runtime.BindStyledParameterWithOptions(
+		"simple",
+		"marker_id",
+		mux.Vars(r)["marker_id"],
+		&markerId,
+		runtime.BindStyledParameterOptions{Explode: false, Required: true},
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "marker_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	params := new(GetHolesParams)
+
+	// ------------- Optional query parameter "limit" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"limit",
+		r.URL.Query(),
+		&params.Limit,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "last_val" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"last_val",
+		r.URL.Query(),
+		&params.LastVal,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_val", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "last_id" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"last_id",
+		r.URL.Query(),
+		&params.LastId,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_id", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"offset",
+		r.URL.Query(),
+		&params.Offset,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort_by" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"sort_by",
+		r.URL.Query(),
+		&params.SortBy,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort_dir" -------------
+	if err := runtime.BindQueryParameter(
+		"form",
+		true,
+		false,
+		"sort_dir",
+		r.URL.Query(),
+		&params.SortDir,
+	); err != nil {
+		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
+		return
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	resp, err := siw.handler.GetHoles(l, r, markerId, params)
 	if err != nil {
 		siw.errorHandlerFunc(ctx, l, cw, err)
 		return
@@ -470,6 +914,36 @@ func RegisterUnauthedHandlers(router *mux.Router, si ServerInterface, opts ...Se
 			uhttp.InstrumentCounter(GetClubsTotalRequests),
 			uhttp.InstrumentDuration(GetClubsRequestDuration),
 			uhttp.InstrumentResponseSize(GetClubsResponseSize),
+		))
+
+	router.Methods(http.MethodGet).
+		Path("/clubs/{club_id}/courses").
+		Handler(uhttp.WrapHandler(
+			wrapper.GetCourses,
+			uhttp.InstrumentCounter(TotalRequests),
+			uhttp.InstrumentCounter(GetCoursesTotalRequests),
+			uhttp.InstrumentDuration(GetCoursesRequestDuration),
+			uhttp.InstrumentResponseSize(GetCoursesResponseSize),
+		))
+
+	router.Methods(http.MethodGet).
+		Path("/courses/{course_id}/markers").
+		Handler(uhttp.WrapHandler(
+			wrapper.GetMarkers,
+			uhttp.InstrumentCounter(TotalRequests),
+			uhttp.InstrumentCounter(GetMarkersTotalRequests),
+			uhttp.InstrumentDuration(GetMarkersRequestDuration),
+			uhttp.InstrumentResponseSize(GetMarkersResponseSize),
+		))
+
+	router.Methods(http.MethodGet).
+		Path("/markers/{marker_id}/holes").
+		Handler(uhttp.WrapHandler(
+			wrapper.GetHoles,
+			uhttp.InstrumentCounter(TotalRequests),
+			uhttp.InstrumentCounter(GetHolesTotalRequests),
+			uhttp.InstrumentDuration(GetHolesRequestDuration),
+			uhttp.InstrumentResponseSize(GetHolesResponseSize),
 		))
 
 }

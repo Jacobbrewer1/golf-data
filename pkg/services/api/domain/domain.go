@@ -8,6 +8,9 @@ import (
 
 type Domain interface {
 	GetClubs(paginatorDetails *pagefilter.PaginatorDetails, params *api.GetClubsParams) (*api.GetClubsResponse, error)
+	GetCourses(paginatorDetails *pagefilter.PaginatorDetails, clubID int64, params *api.GetCoursesParams) (*api.GetCoursesResponse, error)
+	GetMarkers(paginatorDetails *pagefilter.PaginatorDetails, courseID int64, params *api.GetMarkersParams) (*api.GetMarkersResponse, error)
+	GetHoles(paginatorDetails *pagefilter.PaginatorDetails, markerId int64, params *api.GetHolesParams) (*api.GetHolesResponse, error)
 }
 
 type domain struct {

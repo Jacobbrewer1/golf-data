@@ -1,10 +1,10 @@
 create table hole
 (
     id              int not null auto_increment,
-    details_id       int not null,
+    details_id      int not null,
     number          int not null,
     par             int not null,
-    stroke          int not null,
+    stroke_index    int not null,
     distance_yards  int not null,
     distance_meters int not null,
     primary key (id),
