@@ -166,9 +166,6 @@ github.com/invopop/yaml
 # github.com/jacobbrewer1/goredis v0.1.7
 ## explicit; go 1.24
 github.com/jacobbrewer1/goredis
-# github.com/jacobbrewer1/goschema v0.0.27
-## explicit; go 1.23
-github.com/jacobbrewer1/goschema/usql
 # github.com/jacobbrewer1/pagefilter v0.1.8
 ## explicit; go 1.24
 github.com/jacobbrewer1/pagefilter
@@ -188,7 +185,7 @@ github.com/jacobbrewer1/utils
 ## explicit; go 1.24
 github.com/jacobbrewer1/vaulty
 github.com/jacobbrewer1/vaulty/repositories
-# github.com/jacobbrewer1/web v0.0.5-0.20250410100548-e88edd817616
+# github.com/jacobbrewer1/web v0.0.5-0.20250410121823-685c0a833eef
 ## explicit; go 1.24
 github.com/jacobbrewer1/web
 github.com/jacobbrewer1/web/cache
