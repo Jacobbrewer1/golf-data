@@ -6,13 +6,12 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/vault/api v1.16.0
-	github.com/jacobbrewer1/goschema v0.0.27
 	github.com/jacobbrewer1/pagefilter v0.1.8
 	github.com/jacobbrewer1/patcher v0.1.21
 	github.com/jacobbrewer1/uhttp v0.0.12
 	github.com/jacobbrewer1/utils v0.0.1
 	github.com/jacobbrewer1/vaulty v0.1.10
-	github.com/jacobbrewer1/web v0.0.5-0.20250410100548-e88edd817616
+	github.com/jacobbrewer1/web v0.0.5-0.20250410121823-685c0a833eef
 	github.com/jacobbrewer1/workerpool v0.0.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/magefile/mage v1.15.0
