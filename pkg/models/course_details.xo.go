@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jacobbrewer1/goschema/usql"
 	"github.com/jacobbrewer1/patcher"
 	"github.com/jacobbrewer1/patcher/inserter"
 	"github.com/prometheus/client_golang/prometheus"
@@ -21,20 +20,20 @@ const (
 
 // CourseDetails represents a row from 'course_details'.
 type CourseDetails struct {
-	Id              int             `db:"id,pk,autoinc"`
-	CourseId        int             `db:"course_id"`
-	Marker          usql.NullString `db:"marker"`
-	Slope           int             `db:"slope"`
-	CourseRating    float64         `db:"course_rating"`
-	FrontNinePar    int             `db:"front_nine_par"`
-	BackNinePar     int             `db:"back_nine_par"`
-	TotalPar        int             `db:"total_par"`
-	FrontNineYards  int             `db:"front_nine_yards"`
-	BackNineYards   int             `db:"back_nine_yards"`
-	TotalYards      int             `db:"total_yards"`
-	FrontNineMeters int             `db:"front_nine_meters"`
-	BackNineMeters  int             `db:"back_nine_meters"`
-	TotalMeters     int             `db:"total_meters"`
+	Id              int     `db:"id,pk,autoinc"`
+	CourseId        int     `db:"course_id"`
+	Marker          string  `db:"marker"`
+	SlopeRating     int     `db:"slope_rating"`
+	CourseRating    float64 `db:"course_rating"`
+	ParFrontNine    int     `db:"par_front_nine"`
+	ParBackNine     int     `db:"par_back_nine"`
+	ParTotal        int     `db:"par_total"`
+	YardsFrontNine  int     `db:"yards_front_nine"`
+	YardsBackNine   int     `db:"yards_back_nine"`
+	YardsTotal      int     `db:"yards_total"`
+	MetersFrontNine int     `db:"meters_front_nine"`
+	MetersBackNine  int     `db:"meters_back_nine"`
+	MetersTotal     int     `db:"meters_total"`
 }
 
 // Insert inserts the CourseDetails to the database.
@@ -43,13 +42,13 @@ func (m *CourseDetails) Insert(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "INSERT INTO course_details (" +
-		"`course_id`, `marker`, `slope`, `course_rating`, `front_nine_par`, `back_nine_par`, `total_par`, `front_nine_yards`, `back_nine_yards`, `total_yards`, `front_nine_meters`, `back_nine_meters`, `total_meters`" +
+		"`course_id`, `marker`, `slope_rating`, `course_rating`, `par_front_nine`, `par_back_nine`, `par_total`, `yards_front_nine`, `yards_back_nine`, `yards_total`, `meters_front_nine`, `meters_back_nine`, `meters_total`" +
 		") VALUES (" +
 		"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" +
 		")"
 
-	DBLog(sqlstr, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
-	res, err := db.Exec(sqlstr, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
+	DBLog(sqlstr, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal)
+	res, err := db.Exec(sqlstr, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal)
 	if err != nil {
 		return err
 	}
@@ -72,13 +71,13 @@ func (m *CourseDetails) InsertCourseDetailsWithPK(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "INSERT INTO course_details (" +
-		"`id`, `course_id`, `marker`, `slope`, `course_rating`, `front_nine_par`, `back_nine_par`, `total_par`, `front_nine_yards`, `back_nine_yards`, `total_yards`, `front_nine_meters`, `back_nine_meters`, `total_meters`" +
+		"`id`, `course_id`, `marker`, `slope_rating`, `course_rating`, `par_front_nine`, `par_back_nine`, `par_total`, `yards_front_nine`, `yards_back_nine`, `yards_total`, `meters_front_nine`, `meters_back_nine`, `meters_total`" +
 		") VALUES (" +
 		"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" +
 		")"
 
-	DBLog(sqlstr, m.Id, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
-	_, err := db.Exec(sqlstr, m.Id, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
+	DBLog(sqlstr, m.Id, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal)
+	_, err := db.Exec(sqlstr, m.Id, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal)
 	return err
 }
 
@@ -130,11 +129,11 @@ func (m *CourseDetails) Update(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "UPDATE course_details " +
-		"SET `course_id` = ?, `marker` = ?, `slope` = ?, `course_rating` = ?, `front_nine_par` = ?, `back_nine_par` = ?, `total_par` = ?, `front_nine_yards` = ?, `back_nine_yards` = ?, `total_yards` = ?, `front_nine_meters` = ?, `back_nine_meters` = ?, `total_meters` = ? " +
+		"SET `course_id` = ?, `marker` = ?, `slope_rating` = ?, `course_rating` = ?, `par_front_nine` = ?, `par_back_nine` = ?, `par_total` = ?, `yards_front_nine` = ?, `yards_back_nine` = ?, `yards_total` = ?, `meters_front_nine` = ?, `meters_back_nine` = ?, `meters_total` = ? " +
 		"WHERE `id` = ?"
 
-	DBLog(sqlstr, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters, m.Id)
-	res, err := db.Exec(sqlstr, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters, m.Id)
+	DBLog(sqlstr, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal, m.Id)
+	res, err := db.Exec(sqlstr, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal, m.Id)
 	if err != nil {
 		return err
 	}
@@ -156,14 +155,14 @@ func (m *CourseDetails) InsertWithUpdate(db DB) error {
 	defer t.ObserveDuration()
 
 	const sqlstr = "INSERT INTO course_details (" +
-		"`course_id`, `marker`, `slope`, `course_rating`, `front_nine_par`, `back_nine_par`, `total_par`, `front_nine_yards`, `back_nine_yards`, `total_yards`, `front_nine_meters`, `back_nine_meters`, `total_meters`" +
+		"`course_id`, `marker`, `slope_rating`, `course_rating`, `par_front_nine`, `par_back_nine`, `par_total`, `yards_front_nine`, `yards_back_nine`, `yards_total`, `meters_front_nine`, `meters_back_nine`, `meters_total`" +
 		") VALUES (" +
 		"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" +
 		") ON DUPLICATE KEY UPDATE " +
-		"`course_id` = VALUES(`course_id`), `marker` = VALUES(`marker`), `slope` = VALUES(`slope`), `course_rating` = VALUES(`course_rating`), `front_nine_par` = VALUES(`front_nine_par`), `back_nine_par` = VALUES(`back_nine_par`), `total_par` = VALUES(`total_par`), `front_nine_yards` = VALUES(`front_nine_yards`), `back_nine_yards` = VALUES(`back_nine_yards`), `total_yards` = VALUES(`total_yards`), `front_nine_meters` = VALUES(`front_nine_meters`), `back_nine_meters` = VALUES(`back_nine_meters`), `total_meters` = VALUES(`total_meters`)"
+		"`course_id` = VALUES(`course_id`), `marker` = VALUES(`marker`), `slope_rating` = VALUES(`slope_rating`), `course_rating` = VALUES(`course_rating`), `par_front_nine` = VALUES(`par_front_nine`), `par_back_nine` = VALUES(`par_back_nine`), `par_total` = VALUES(`par_total`), `yards_front_nine` = VALUES(`yards_front_nine`), `yards_back_nine` = VALUES(`yards_back_nine`), `yards_total` = VALUES(`yards_total`), `meters_front_nine` = VALUES(`meters_front_nine`), `meters_back_nine` = VALUES(`meters_back_nine`), `meters_total` = VALUES(`meters_total`)"
 
-	DBLog(sqlstr, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
-	res, err := db.Exec(sqlstr, m.CourseId, m.Marker, m.Slope, m.CourseRating, m.FrontNinePar, m.BackNinePar, m.TotalPar, m.FrontNineYards, m.BackNineYards, m.TotalYards, m.FrontNineMeters, m.BackNineMeters, m.TotalMeters)
+	DBLog(sqlstr, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal)
+	res, err := db.Exec(sqlstr, m.CourseId, m.Marker, m.SlopeRating, m.CourseRating, m.ParFrontNine, m.ParBackNine, m.ParTotal, m.YardsFrontNine, m.YardsBackNine, m.YardsTotal, m.MetersFrontNine, m.MetersBackNine, m.MetersTotal)
 	if err != nil {
 		return err
 	}
@@ -214,7 +213,7 @@ func CourseDetailsById(db DB, id int) (*CourseDetails, error) {
 	t := prometheus.NewTimer(DatabaseLatency.WithLabelValues("get_" + CourseDetailsTableName + "_by_id"))
 	defer t.ObserveDuration()
 
-	const sqlstr = "SELECT `id`, `course_id`, `marker`, `slope`, `course_rating`, `front_nine_par`, `back_nine_par`, `total_par`, `front_nine_yards`, `back_nine_yards`, `total_yards`, `front_nine_meters`, `back_nine_meters`, `total_meters` " +
+	const sqlstr = "SELECT `id`, `course_id`, `marker`, `slope_rating`, `course_rating`, `par_front_nine`, `par_back_nine`, `par_total`, `yards_front_nine`, `yards_back_nine`, `yards_total`, `meters_front_nine`, `meters_back_nine`, `meters_total` " +
 		"FROM course_details " +
 		"WHERE `id` = ?"
 
@@ -296,7 +295,7 @@ func GetAllCourseDetailss(db DB, filters ...any) ([]*CourseDetails, error) {
 
 	args := make([]any, 0)
 	builder := new(strings.Builder)
-	builder.WriteString("SELECT t.id, t.course_id, t.marker, t.slope, t.course_rating, t.front_nine_par, t.back_nine_par, t.total_par, t.front_nine_yards, t.back_nine_yards, t.total_yards, t.front_nine_meters, t.back_nine_meters, t.total_meters")
+	builder.WriteString("SELECT t.id, t.course_id, t.marker, t.slope_rating, t.course_rating, t.par_front_nine, t.par_back_nine, t.par_total, t.yards_front_nine, t.yards_back_nine, t.yards_total, t.meters_front_nine, t.meters_back_nine, t.meters_total")
 
 	if len(filters) > 0 {
 		for _, filter := range filters {

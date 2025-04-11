@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/jacobbrewer1/golf-data/pkg/models"
-	"github.com/jacobbrewer1/goschema/usql"
 )
 
 type EnglandGolfClubResponse struct {
@@ -66,18 +65,18 @@ func (c *EnglandGolfCourseDetailsResponse) ToModel(courseId int) *models.CourseD
 	dbCourseDetails := &models.CourseDetails{
 		Id:              c.MarkerId,
 		CourseId:        courseId,
-		Marker:          *usql.NewNullString(c.DisplayMarkerName),
-		Slope:           c.SlopeRating,
+		Marker:          c.DisplayMarkerName,
+		SlopeRating:     c.SlopeRating,
 		CourseRating:    c.CourseRating,
-		FrontNinePar:    c.FrontNinePar,
-		BackNinePar:     c.BackNinePar,
-		TotalPar:        c.TotalPar,
-		FrontNineYards:  c.FrontNineDistanceYards,
-		BackNineYards:   c.BackNineDistanceYards,
-		TotalYards:      c.FrontNineDistanceYards + c.BackNineDistanceYards,
-		FrontNineMeters: c.FrontNineDistanceMetres,
-		BackNineMeters:  c.BackNineDistanceMetres,
-		TotalMeters:     c.FrontNineDistanceMetres + c.BackNineDistanceMetres,
+		ParFrontNine:    c.FrontNinePar,
+		ParBackNine:     c.BackNinePar,
+		ParTotal:        c.TotalPar,
+		YardsFrontNine:  c.FrontNineDistanceYards,
+		YardsBackNine:   c.BackNineDistanceYards,
+		YardsTotal:      c.FrontNineDistanceYards + c.BackNineDistanceYards,
+		MetersFrontNine: c.FrontNineDistanceMetres,
+		MetersBackNine:  c.BackNineDistanceMetres,
+		MetersTotal:     c.FrontNineDistanceMetres + c.BackNineDistanceMetres,
 	}
 	return dbCourseDetails
 }
@@ -99,7 +98,7 @@ func (h *EnglandGolfResponseHole) ToModel(markerId int) *models.Hole {
 		DetailsId:      markerId,
 		Number:         holeNum,
 		Par:            h.Par,
-		Stroke:         h.Stroke,
+		StrokeIndex:    h.Stroke,
 		DistanceYards:  h.DistanceYards,
 		DistanceMeters: h.DistanceMetres,
 	}

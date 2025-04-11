@@ -14,9 +14,9 @@ type MockRepository struct {
 	mock.Mock
 }
 
-// GetClubs provides a mock function with given fields: details, filters
-func (_m *MockRepository) GetClubs(details *pagefilter.PaginatorDetails, filters *GetClubsFilters) (*pagefilter.PaginatedResponse[models.Club], error) {
-	ret := _m.Called(details, filters)
+// GetClubs provides a mock function with given fields: details, filter
+func (_m *MockRepository) GetClubs(details *pagefilter.PaginatorDetails, filter *GetClubsFilters) (*pagefilter.PaginatedResponse[models.Club], error) {
+	ret := _m.Called(details, filter)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetClubs")
@@ -25,10 +25,10 @@ func (_m *MockRepository) GetClubs(details *pagefilter.PaginatorDetails, filters
 	var r0 *pagefilter.PaginatedResponse[models.Club]
 	var r1 error
 	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetClubsFilters) (*pagefilter.PaginatedResponse[models.Club], error)); ok {
-		return rf(details, filters)
+		return rf(details, filter)
 	}
 	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetClubsFilters) *pagefilter.PaginatedResponse[models.Club]); ok {
-		r0 = rf(details, filters)
+		r0 = rf(details, filter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*pagefilter.PaginatedResponse[models.Club])
@@ -36,7 +36,97 @@ func (_m *MockRepository) GetClubs(details *pagefilter.PaginatorDetails, filters
 	}
 
 	if rf, ok := ret.Get(1).(func(*pagefilter.PaginatorDetails, *GetClubsFilters) error); ok {
-		r1 = rf(details, filters)
+		r1 = rf(details, filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetCourses provides a mock function with given fields: details, filter
+func (_m *MockRepository) GetCourses(details *pagefilter.PaginatorDetails, filter *GetCoursesFilters) (*pagefilter.PaginatedResponse[models.Course], error) {
+	ret := _m.Called(details, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCourses")
+	}
+
+	var r0 *pagefilter.PaginatedResponse[models.Course]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetCoursesFilters) (*pagefilter.PaginatedResponse[models.Course], error)); ok {
+		return rf(details, filter)
+	}
+	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetCoursesFilters) *pagefilter.PaginatedResponse[models.Course]); ok {
+		r0 = rf(details, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*pagefilter.PaginatedResponse[models.Course])
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*pagefilter.PaginatorDetails, *GetCoursesFilters) error); ok {
+		r1 = rf(details, filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetHoles provides a mock function with given fields: details, filter
+func (_m *MockRepository) GetHoles(details *pagefilter.PaginatorDetails, filter *GetHolesFilters) (*pagefilter.PaginatedResponse[models.Hole], error) {
+	ret := _m.Called(details, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetHoles")
+	}
+
+	var r0 *pagefilter.PaginatedResponse[models.Hole]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetHolesFilters) (*pagefilter.PaginatedResponse[models.Hole], error)); ok {
+		return rf(details, filter)
+	}
+	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetHolesFilters) *pagefilter.PaginatedResponse[models.Hole]); ok {
+		r0 = rf(details, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*pagefilter.PaginatedResponse[models.Hole])
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*pagefilter.PaginatorDetails, *GetHolesFilters) error); ok {
+		r1 = rf(details, filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMarkers provides a mock function with given fields: details, filter
+func (_m *MockRepository) GetMarkers(details *pagefilter.PaginatorDetails, filter *GetMarkersFilters) (*pagefilter.PaginatedResponse[models.CourseDetails], error) {
+	ret := _m.Called(details, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetMarkers")
+	}
+
+	var r0 *pagefilter.PaginatedResponse[models.CourseDetails]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetMarkersFilters) (*pagefilter.PaginatedResponse[models.CourseDetails], error)); ok {
+		return rf(details, filter)
+	}
+	if rf, ok := ret.Get(0).(func(*pagefilter.PaginatorDetails, *GetMarkersFilters) *pagefilter.PaginatedResponse[models.CourseDetails]); ok {
+		r0 = rf(details, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*pagefilter.PaginatedResponse[models.CourseDetails])
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*pagefilter.PaginatorDetails, *GetMarkersFilters) error); ok {
+		r1 = rf(details, filter)
 	} else {
 		r1 = ret.Error(1)
 	}

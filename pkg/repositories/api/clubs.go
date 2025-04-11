@@ -56,6 +56,9 @@ func (r *repository) GetClubs(details *pagefilter.PaginatorDetails, filter *GetC
 
 func (r *repository) getClubFilters(filter *GetClubsFilters) *pagefilter.MultiFilter {
 	mf := pagefilter.NewMultiFilter()
+	if filter == nil {
+		return mf
+	}
 
 	if filter.Name != nil {
 		mf.Add(filters.NewClubNameLike(*filter.Name))

@@ -17,6 +17,39 @@ type Club struct {
 	Postcode string `json:"postcode"`
 }
 
+// Course defines the model for course.
+type Course struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+// Hole defines the model for hole.
+type Hole struct {
+	DistanceMeters int64 `json:"distance_meters"`
+	DistanceYards  int64 `json:"distance_yards"`
+	Id             int64 `json:"id"`
+	Number         int64 `json:"number"`
+	Par            int64 `json:"par"`
+	StrokeIndex    int64 `json:"stroke_index"`
+}
+
+// Marker defines the model for marker.
+type Marker struct {
+	CourseRating    float32 `json:"course_rating"`
+	Id              int64   `json:"id"`
+	Marker          string  `json:"marker"`
+	MetersBackNine  int64   `json:"meters_back_nine"`
+	MetersFrontNine int64   `json:"meters_front_nine"`
+	MetersTotal     int64   `json:"meters_total"`
+	ParBackNine     int64   `json:"par_back_nine"`
+	ParFrontNine    int64   `json:"par_front_nine"`
+	ParTotal        int64   `json:"par_total"`
+	SlopeRating     int64   `json:"slope_rating"`
+	YardsBackNine   int64   `json:"yards_back_nine"`
+	YardsFrontNine  int64   `json:"yards_front_nine"`
+	YardsTotal      int64   `json:"yards_total"`
+}
+
 // QueryNameParam defines the model for query_name_param.
 type QueryNameParam = string
 
@@ -24,6 +57,24 @@ type QueryNameParam = string
 type GetClubsResponse struct {
 	Items []Club `json:"items"`
 	Total int64  `json:"total"`
+}
+
+// GetCoursesResponse defines the model for get_courses_response.
+type GetCoursesResponse struct {
+	Items []Course `json:"items"`
+	Total int64    `json:"total"`
+}
+
+// GetHolesResponse defines the model for get_holes_response.
+type GetHolesResponse struct {
+	Items []Hole `json:"items"`
+	Total int64  `json:"total"`
+}
+
+// GetMarkersResponse defines the model for get_markers_response.
+type GetMarkersResponse struct {
+	Items []Marker `json:"items"`
+	Total int64    `json:"total"`
 }
 
 // GetClubsParams defines parameters for GetClubs.
@@ -52,3 +103,75 @@ type GetClubsParams struct {
 
 // GetClubsParamsSortDir defines parameters for GetClubs.
 type GetClubsParamsSortDir string
+
+// GetCoursesParams defines parameters for GetCourses.
+type GetCoursesParams struct {
+	// Limit Report type
+	Limit *externalRef0.LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// LastVal Pagination details, last value of the sort column on the previous page.
+	LastVal *externalRef0.LastValue `form:"last_val,omitempty" json:"last_val,omitempty"`
+
+	// LastId Pagination details, last value of the id column on the previous page.
+	LastId *externalRef0.LastId `form:"last_id,omitempty" json:"last_id,omitempty"`
+
+	// Offset Pagination details, offset value.
+	Offset *externalRef0.Offset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// SortBy Pagination details, sort column, if empty uses the id column.
+	SortBy *externalRef0.SortBy `form:"sort_by,omitempty" json:"sort_by,omitempty"`
+
+	// SortDir Pagination details, sorting order.
+	SortDir *GetCoursesParamsSortDir `form:"sort_dir,omitempty" json:"sort_dir,omitempty"`
+}
+
+// GetCoursesParamsSortDir defines parameters for GetCourses.
+type GetCoursesParamsSortDir string
+
+// GetMarkersParams defines parameters for GetMarkers.
+type GetMarkersParams struct {
+	// Limit Report type
+	Limit *externalRef0.LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// LastVal Pagination details, last value of the sort column on the previous page.
+	LastVal *externalRef0.LastValue `form:"last_val,omitempty" json:"last_val,omitempty"`
+
+	// LastId Pagination details, last value of the id column on the previous page.
+	LastId *externalRef0.LastId `form:"last_id,omitempty" json:"last_id,omitempty"`
+
+	// Offset Pagination details, offset value.
+	Offset *externalRef0.Offset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// SortBy Pagination details, sort column, if empty uses the id column.
+	SortBy *externalRef0.SortBy `form:"sort_by,omitempty" json:"sort_by,omitempty"`
+
+	// SortDir Pagination details, sorting order.
+	SortDir *GetMarkersParamsSortDir `form:"sort_dir,omitempty" json:"sort_dir,omitempty"`
+}
+
+// GetMarkersParamsSortDir defines parameters for GetMarkers.
+type GetMarkersParamsSortDir string
+
+// GetHolesParams defines parameters for GetHoles.
+type GetHolesParams struct {
+	// Limit Report type
+	Limit *externalRef0.LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// LastVal Pagination details, last value of the sort column on the previous page.
+	LastVal *externalRef0.LastValue `form:"last_val,omitempty" json:"last_val,omitempty"`
+
+	// LastId Pagination details, last value of the id column on the previous page.
+	LastId *externalRef0.LastId `form:"last_id,omitempty" json:"last_id,omitempty"`
+
+	// Offset Pagination details, offset value.
+	Offset *externalRef0.Offset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// SortBy Pagination details, sort column, if empty uses the id column.
+	SortBy *externalRef0.SortBy `form:"sort_by,omitempty" json:"sort_by,omitempty"`
+
+	// SortDir Pagination details, sorting order.
+	SortDir *GetHolesParamsSortDir `form:"sort_dir,omitempty" json:"sort_dir,omitempty"`
+}
+
+// GetHolesParamsSortDir defines parameters for GetHoles.
+type GetHolesParamsSortDir string
