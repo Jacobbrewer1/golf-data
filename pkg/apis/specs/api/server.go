@@ -303,6 +303,9 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 					Detail:    "Rate limit exceeded",
 					Status:    http.StatusTooManyRequests,
 					RequestId: uhttp.RequestIDFromContext(ctx),
+					Details: []any{
+						"Rate limit exceeded",
+					},
 				},
 			})
 			return
@@ -442,6 +445,9 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 					Detail:    "Rate limit exceeded",
 					Status:    http.StatusTooManyRequests,
 					RequestId: uhttp.RequestIDFromContext(ctx),
+					Details: []any{
+						"Rate limit exceeded",
+					},
 				},
 			})
 			return
@@ -581,6 +587,9 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 					Detail:    "Rate limit exceeded",
 					Status:    http.StatusTooManyRequests,
 					RequestId: uhttp.RequestIDFromContext(ctx),
+					Details: []any{
+						"Rate limit exceeded",
+					},
 				},
 			})
 			return
@@ -720,6 +729,9 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 					Detail:    "Rate limit exceeded",
 					Status:    http.StatusTooManyRequests,
 					RequestId: uhttp.RequestIDFromContext(ctx),
+					Details: []any{
+						"Rate limit exceeded",
+					},
 				},
 			})
 			return

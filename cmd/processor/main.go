@@ -13,6 +13,7 @@ import (
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 const (
@@ -41,7 +42,7 @@ func (a *App) Start() error {
 		web.WithVaultClient(),
 		web.WithDatabaseFromVault(),
 		web.WithInClusterNatsClient(),
-		web.WithNatsJetStream("golf-data", []string{"clubs", "courses", "details", "holes"}),
+		web.WithNatsJetStream("golf-data", jetstream.WorkQueuePolicy, []string{"clubs", "courses", "details", "holes"}),
 		web.WithDependencyBootstrap(func(ctx context.Context) error {
 			serviceRepo := repo.NewRepository(a.base.DBConn())
 			serviceDomain := domain.NewDomain(serviceRepo)
