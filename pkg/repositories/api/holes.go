@@ -66,6 +66,6 @@ func getHolesFilter(filter *GetHolesFilters) *pagefilter.MultiFilter {
 	if filter == nil {
 		return mf
 	}
-	mf.Add(filters.NewHoleMarkerId(filter.MarkerID))
+	mf.Add(filters.NewHoleMarkerID(filter.MarkerID))
 	return mf
 }

@@ -2,17 +2,17 @@ package filters
 
 import "github.com/jacobbrewer1/pagefilter"
 
-type holeMarkerId struct {
+type holeMarkerID struct {
 	markerID int64
 }
 
-// NewHoleMarkerId creates a new holeMarkerId filter.
-func NewHoleMarkerId(markerID int64) pagefilter.Wherer {
-	return &holeMarkerId{
+// NewHoleMarkerID creates a new holeMarkerID filter.
+func NewHoleMarkerID(markerID int64) pagefilter.Wherer {
+	return &holeMarkerID{
 		markerID: markerID,
 	}
 }
 
-func (h *holeMarkerId) Where() (sqlStr string, sqlArgs []any) {
+func (h *holeMarkerID) Where() (sqlStr string, sqlArgs []any) {
 	return "t.details_id = ?", []any{h.markerID}
 }
