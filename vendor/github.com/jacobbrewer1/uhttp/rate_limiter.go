@@ -1,6 +1,12 @@
 package uhttp
 
-import "golang.org/x/time/rate"
+import (
+	"context"
+	"log/slog"
+	"sync"
+
+	"golang.org/x/time/rate"
+)
 
 type RateLimiter interface {
 	// Allow returns true if the request is allowed.
@@ -8,8 +14,10 @@ type RateLimiter interface {
 }
 
 type rateLimiter struct {
+	l *slog.Logger
+
 	// limiter is the limiter.
-	limiters map[string]*rate.Limiter
+	limiters sync.Map
 
 	// rps is the requests per second.
 	rps float64
@@ -19,39 +27,41 @@ type rateLimiter struct {
 }
 
 // NewRateLimiter creates a new rate limiter.
-//
-// rps is the requests per second.
-func NewRateLimiter(rps float64) RateLimiter {
-	return NewRateLimiterWithBurst(rps, 0)
-}
-
-// NewRateLimiterWithBurst creates a new rate limiter.
-//
-// rps is the requests per second.
-//
-// burst is the burst. This is the number of requests that can be made in one go. If the burst is 0, then the burst is
-// set to the rps. If the burst is less than the rps, then the burst is set to the rps.
-func NewRateLimiterWithBurst(rps float64, burst int) RateLimiter {
-	if burst == 0 {
-		burst = int(rps)
-	} else if burst < int(rps) {
+func NewRateLimiter(rps float64, burst int, opts ...RateLimiterOption) RateLimiter {
+	if burst == 0 || float64(burst) < rps {
 		burst = int(rps)
 	}
 
-	return &rateLimiter{
-		limiters: make(map[string]*rate.Limiter),
-		rps:      rps,
-		burst:    burst,
+	rl := &rateLimiter{
+		rps:   rps,
+		burst: burst,
 	}
+
+	for _, opt := range opts {
+		opt(rl)
+	}
+
+	return rl
 }
 
+// Allow returns true if the request is allowed.
 func (r *rateLimiter) Allow(key string) bool {
 	// Rate limits the request.
-	limiter, ok := r.limiters[key]
+	gotLimiter, _ := r.limiters.LoadOrStore(key, rate.NewLimiter(rate.Limit(r.rps), r.burst))
+
+	limiter, ok := gotLimiter.(*rate.Limiter)
 	if !ok {
-		limiter = rate.NewLimiter(rate.Limit(r.rps), r.burst)
-		r.limiters[key] = limiter
+		r.log(slog.LevelError, "failed to cast rate limiter", slog.String(loggingKeyKey, key))
+		return false
 	}
 
 	return limiter.Allow()
+}
+
+func (r *rateLimiter) log(level slog.Level, msg string, args ...any) {
+	if r.l == nil {
+		return
+	}
+
+	r.l.Log(context.Background(), level, msg, args...) // nolint:sloglint // Handler around the messages passed in to prevent panics on nil logger
 }

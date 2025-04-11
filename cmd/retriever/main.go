@@ -11,6 +11,7 @@ import (
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	_ "golang.org/x/crypto/x509roots/fallback"
 )
 
@@ -43,7 +44,7 @@ func (a *App) Start() error {
 		web.WithInClusterNatsClient(),
 		web.WithVaultClient(),
 		web.WithDatabaseFromVault(),
-		web.WithNatsJetStream("golf-data", []string{"clubs", "courses", "details", "holes"}),
+		web.WithNatsJetStream("golf-data", jetstream.WorkQueuePolicy, []string{"clubs", "courses", "details", "holes"}),
 		web.WithDependencyBootstrap(func(ctx context.Context) error {
 			a.r = repo.NewRepository(a.base.DBConn())
 			return nil

@@ -76,7 +76,7 @@ paths:
       operationId: getMarkers
       description: Get all markers for a course
       tags:
-        - holes
+        - courses
       parameters:
         - name: course_id
           description: The ID of the course
