@@ -12,6 +12,6 @@ func NewCourseClubID(clubID int64) pagefilter.Wherer {
 	}
 }
 
-func (c *courseClubID) Where() (string, []any) {
+func (c *courseClubID) Where() (sqlStr string, sqlArgs []any) {
 	return "t.club_id = ?", []any{c.clubID}
 }

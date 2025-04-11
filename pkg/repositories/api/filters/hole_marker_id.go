@@ -13,6 +13,6 @@ func NewHoleMarkerId(markerID int64) pagefilter.Wherer {
 	}
 }
 
-func (h *holeMarkerId) Where() (string, []any) {
+func (h *holeMarkerId) Where() (sqlStr string, sqlArgs []any) {
 	return "t.details_id = ?", []any{h.markerID}
 }

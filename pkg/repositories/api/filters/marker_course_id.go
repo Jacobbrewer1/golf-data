@@ -13,6 +13,6 @@ func NewMarkerCourseID(courseID int64) pagefilter.Wherer {
 	}
 }
 
-func (m *markerCourseID) Where() (string, []any) {
+func (m *markerCourseID) Where() (sqlStr string, sqlArgs []any) {
 	return "t.course_id = ?", []any{m.courseID}
 }
