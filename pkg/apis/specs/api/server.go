@@ -133,7 +133,7 @@ var (
 	}, []string{"code", "method"})
 )
 
-type RateLimiterFunc = func(http.ResponseWriter, context.Context) error
+type RateLimiterFunc = func(context.Context, *http.Request) bool
 type ErrorHandlerFunc = func(context.Context, *slog.Logger, http.ResponseWriter, error)
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -294,8 +294,23 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if siw.rateLimiter != nil {
+		if !siw.rateLimiter(ctx, r) {
+			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
+			encodeErrorResponse(w, &uhttp.HTTPError{
+				ErrorMessage: common.ErrorMessage{
+					Title:     http.StatusText(http.StatusTooManyRequests),
+					Detail:    "Rate limit exceeded",
+					Status:    http.StatusTooManyRequests,
+					RequestId: uhttp.RequestIDFromContext(ctx),
+				},
+			})
+			return
+		}
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	resp, err := siw.handler.GetClubs(l, r, params)
+	resp, err := siw.handler.GetClubs(logging.LoggerWithComponent(l, "handler"), r, params)
 	if err != nil {
 		siw.errorHandlerFunc(ctx, l, cw, err)
 		return
@@ -418,8 +433,23 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if siw.rateLimiter != nil {
+		if !siw.rateLimiter(ctx, r) {
+			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
+			encodeErrorResponse(w, &uhttp.HTTPError{
+				ErrorMessage: common.ErrorMessage{
+					Title:     http.StatusText(http.StatusTooManyRequests),
+					Detail:    "Rate limit exceeded",
+					Status:    http.StatusTooManyRequests,
+					RequestId: uhttp.RequestIDFromContext(ctx),
+				},
+			})
+			return
+		}
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	resp, err := siw.handler.GetCourses(l, r, clubId, params)
+	resp, err := siw.handler.GetCourses(logging.LoggerWithComponent(l, "handler"), r, clubId, params)
 	if err != nil {
 		siw.errorHandlerFunc(ctx, l, cw, err)
 		return
@@ -542,8 +572,23 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if siw.rateLimiter != nil {
+		if !siw.rateLimiter(ctx, r) {
+			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
+			encodeErrorResponse(w, &uhttp.HTTPError{
+				ErrorMessage: common.ErrorMessage{
+					Title:     http.StatusText(http.StatusTooManyRequests),
+					Detail:    "Rate limit exceeded",
+					Status:    http.StatusTooManyRequests,
+					RequestId: uhttp.RequestIDFromContext(ctx),
+				},
+			})
+			return
+		}
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	resp, err := siw.handler.GetMarkers(l, r, courseId, params)
+	resp, err := siw.handler.GetMarkers(logging.LoggerWithComponent(l, "handler"), r, courseId, params)
 	if err != nil {
 		siw.errorHandlerFunc(ctx, l, cw, err)
 		return
@@ -666,8 +711,23 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if siw.rateLimiter != nil {
+		if !siw.rateLimiter(ctx, r) {
+			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
+			encodeErrorResponse(w, &uhttp.HTTPError{
+				ErrorMessage: common.ErrorMessage{
+					Title:     http.StatusText(http.StatusTooManyRequests),
+					Detail:    "Rate limit exceeded",
+					Status:    http.StatusTooManyRequests,
+					RequestId: uhttp.RequestIDFromContext(ctx),
+				},
+			})
+			return
+		}
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	resp, err := siw.handler.GetHoles(l, r, markerId, params)
+	resp, err := siw.handler.GetHoles(logging.LoggerWithComponent(l, "handler"), r, markerId, params)
 	if err != nil {
 		siw.errorHandlerFunc(ctx, l, cw, err)
 		return

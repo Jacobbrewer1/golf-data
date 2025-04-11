@@ -10,6 +10,8 @@ import (
 )
 
 func (s *service) GetMarkers(l *slog.Logger, r *http.Request, courseId int64, params *api.GetMarkersParams) (*api.GetMarkersResponse, error) {
+	l.Debug("===========")
+
 	details, err := pagefilter.DetailsFromRequest(r)
 	if err != nil {
 		return nil, uhttp.NewHTTPError(http.StatusInternalServerError, err, "Failed to parse request into pagefilter details")

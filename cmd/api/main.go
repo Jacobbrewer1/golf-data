@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -12,6 +14,7 @@ import (
 	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/api"
 	apiSvc "github.com/jacobbrewer1/golf-data/pkg/services/api"
 	"github.com/jacobbrewer1/golf-data/pkg/services/api/domain"
+	"github.com/jacobbrewer1/uhttp"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
@@ -41,8 +44,30 @@ func main() {
 			svcRepo := repo.NewRepository(a.DBConn())
 			dom := domain.NewDomain(svcRepo)
 			svc := apiSvc.NewService(dom)
+
+			rateLimiter := uhttp.NewRateLimiter(10, 50,
+				uhttp.WithLogger(logging.LoggerWithComponent(l, "rate-limiter")),
+			)
+
 			api.RegisterUnauthedHandlers(r, svc,
 				api.WithLogger(logging.LoggerWithComponent(l, "gateway")),
+				api.WithRateLimiter(func(_ context.Context, r *http.Request) bool {
+					clientToken := r.Header.Get("X-Client-Token") // Custom header for device/app identification
+					if clientToken == "" {
+						clientToken = r.RemoteAddr // Fallback to remote address if no token is provided
+
+						// Remove the port from the remote address as this can change
+						clientToken, _, err = net.SplitHostPort(clientToken)
+						if err != nil {
+							clientToken = r.RemoteAddr // Fallback to remote address if split fails
+							a.Logger().Warn("failed to split host and port", slog.String(logging.KeyError, err.Error()))
+						}
+					}
+
+					method := r.Method
+					key := fmt.Sprintf("client:%s:method:%s", clientToken, method)
+					return rateLimiter.Allow(key)
+				}),
 			)
 			return nil
 		}),

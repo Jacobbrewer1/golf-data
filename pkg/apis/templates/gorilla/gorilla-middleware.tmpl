@@ -41,7 +41,7 @@ var (
     {{ end }}
 )
 
-type RateLimiterFunc = func(http.ResponseWriter, context.Context) error
+type RateLimiterFunc = func(context.Context, *http.Request) bool
 type ErrorHandlerFunc = func(context.Context, *slog.Logger, http.ResponseWriter, error)
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -314,15 +314,33 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Requ
     return
   }
 
-  _, err := siw.authz.{{$opid}}(l, r{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}}{{if gt (len .Bodies) 0}}, body{{end}})
+  _, err := siw.authz.{{$opid}}(logging.LoggerWithComponent(l, "auth"), r{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}}{{if gt (len .Bodies) 0}}, body{{end}})
   if err != nil {
     siw.errorHandlerFunc(ctx, l, cw, err)
     return
   }
   {{ end }}
 
+  if siw.rateLimiter != nil {
+    if !siw.rateLimiter(ctx, r) {
+        siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
+        encodeErrorResponse(w, &uhttp.HTTPError{
+            ErrorMessage: common.ErrorMessage{
+                Title:  http.StatusText(http.StatusTooManyRequests),
+                Detail: "Rate limit exceeded",
+                Status: http.StatusTooManyRequests,
+                RequestId: uhttp.RequestIDFromContext(ctx),
+                Details: []any{
+                    "Rate limit exceeded",
+                },
+            },
+        })
+        return
+    }
+  }
+
   // Invoke the callback with all the unmarshalled arguments
-  resp, err := siw.handler.{{$opid}}(l, r{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}}{{if gt (len .Bodies) 0}}, body{{end}}{{$form}})
+  resp, err := siw.handler.{{$opid}}(logging.LoggerWithComponent(l, "handler"), r{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}}{{if gt (len .Bodies) 0}}, body{{end}}{{$form}})
   if err != nil {
     siw.errorHandlerFunc(ctx, l, cw, err)
     return

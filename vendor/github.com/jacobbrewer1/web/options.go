@@ -316,8 +316,8 @@ func WithInClusterNatsClient() StartOption {
 	return WithNatsClient(inClusterNatsEndpoint)
 }
 
-// WithNatsJetStream is a StartOption that sets up nats jetstream.
-func WithNatsJetStream(streamName string, subjects []string) StartOption {
+// WithNatsJetStream is a StartOption that sets up nats jetstream with the given stream name, retention policy, and subjects.
+func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPolicy, subjects []string) StartOption {
 	return func(a *App) error {
 		js, err := jetstream.New(a.natsClient)
 		if err != nil {
@@ -329,7 +329,7 @@ func WithNatsJetStream(streamName string, subjects []string) StartOption {
 			Name:      streamName,
 			Subjects:  subjects,
 			Storage:   jetstream.FileStorage,
-			Retention: jetstream.WorkQueuePolicy,
+			Retention: retentionPolicy,
 		})
 		if err != nil && !errors.Is(err, jetstream.ErrStreamNameAlreadyInUse) {
 			return fmt.Errorf("failed to create stream: %w", err)

@@ -14,11 +14,11 @@ func NewLogger(opts ...Option) *slog.Logger {
 func NewLoggerWithWriter(writer io.Writer, opts ...Option) *slog.Logger {
 	logCfg := newLoggingConfig()
 
-	l := slog.New(slog.NewJSONHandler(writer, &slog.HandlerOptions{
+	l := slog.New(NewDedupeHandler(slog.NewJSONHandler(writer, &slog.HandlerOptions{
 		AddSource:   true,
 		Level:       logCfg.Level,
 		ReplaceAttr: replaceAttrs,
-	}))
+	})))
 
 	for _, opt := range opts {
 		opt(l)
