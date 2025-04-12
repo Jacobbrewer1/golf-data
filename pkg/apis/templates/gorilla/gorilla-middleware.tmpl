@@ -113,7 +113,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Requ
   w = uhttp.NewResponseWriter(w,
     uhttp.WithDefaultStatusCode(http.StatusOK),
     uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
-    uhttp.WithDefaultHeader(uhttp.HeaderContentType, "{{ $contentType }}; charset=utf-8"),
+    uhttp.WithDefaultHeader(uhttp.HeaderContentType, "application/json; charset=utf-8"),
   )
 
   {{range .PathParams}}// ------------- Path parameter "{{.ParamName}}" -------------
