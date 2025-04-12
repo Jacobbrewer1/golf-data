@@ -194,10 +194,10 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 	)
 
 	ctx := r.Context()
-	cw := uhttp.NewResponseWriter(w,
+	w = uhttp.NewResponseWriter(w,
 		uhttp.WithDefaultStatusCode(http.StatusOK),
 		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
-		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
+		uhttp.WithDefaultHeader(uhttp.HeaderContentType, "application/json; charset=utf-8"),
 	)
 
 	// Parameter object where we will unmarshal all parameters from the context
@@ -212,7 +212,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.Limit,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "limit", Err: err})
 		return
 	}
 
@@ -225,7 +225,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.LastVal,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_val", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_val", Err: err})
 		return
 	}
 
@@ -238,7 +238,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.LastId,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_id", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_id", Err: err})
 		return
 	}
 
@@ -251,7 +251,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.Offset,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "offset", Err: err})
 		return
 	}
 
@@ -264,7 +264,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.SortBy,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
 		return
 	}
 
@@ -277,7 +277,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.SortDir,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
 		return
 	}
 
@@ -290,7 +290,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.Name,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "name", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "name", Err: err})
 		return
 	}
 
@@ -315,7 +315,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 	// Invoke the callback with all the unmarshalled arguments
 	resp, err := siw.handler.GetClubs(logging.LoggerWithComponent(l, "handler"), r, params)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 
@@ -323,7 +323,7 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(200)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 }
@@ -336,10 +336,10 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 	)
 
 	ctx := r.Context()
-	cw := uhttp.NewResponseWriter(w,
+	w = uhttp.NewResponseWriter(w,
 		uhttp.WithDefaultStatusCode(http.StatusOK),
 		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
-		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
+		uhttp.WithDefaultHeader(uhttp.HeaderContentType, "application/json; charset=utf-8"),
 	)
 
 	// ------------- Path parameter "club_id" -------------
@@ -351,7 +351,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		&clubId,
 		runtime.BindStyledParameterOptions{Explode: false, Required: true},
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "club_id", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "club_id", Err: err})
 		return
 	}
 
@@ -367,7 +367,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.Limit,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "limit", Err: err})
 		return
 	}
 
@@ -380,7 +380,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.LastVal,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_val", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_val", Err: err})
 		return
 	}
 
@@ -393,7 +393,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.LastId,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_id", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_id", Err: err})
 		return
 	}
 
@@ -406,7 +406,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.Offset,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "offset", Err: err})
 		return
 	}
 
@@ -419,7 +419,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.SortBy,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
 		return
 	}
 
@@ -432,7 +432,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.SortDir,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
 		return
 	}
 
@@ -457,7 +457,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 	// Invoke the callback with all the unmarshalled arguments
 	resp, err := siw.handler.GetCourses(logging.LoggerWithComponent(l, "handler"), r, clubId, params)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 
@@ -465,7 +465,7 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(200)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 }
@@ -478,10 +478,10 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 	)
 
 	ctx := r.Context()
-	cw := uhttp.NewResponseWriter(w,
+	w = uhttp.NewResponseWriter(w,
 		uhttp.WithDefaultStatusCode(http.StatusOK),
 		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
-		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
+		uhttp.WithDefaultHeader(uhttp.HeaderContentType, "application/json; charset=utf-8"),
 	)
 
 	// ------------- Path parameter "course_id" -------------
@@ -493,7 +493,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		&courseId,
 		runtime.BindStyledParameterOptions{Explode: false, Required: true},
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "course_id", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "course_id", Err: err})
 		return
 	}
 
@@ -509,7 +509,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.Limit,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "limit", Err: err})
 		return
 	}
 
@@ -522,7 +522,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.LastVal,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_val", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_val", Err: err})
 		return
 	}
 
@@ -535,7 +535,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.LastId,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_id", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_id", Err: err})
 		return
 	}
 
@@ -548,7 +548,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.Offset,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "offset", Err: err})
 		return
 	}
 
@@ -561,7 +561,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.SortBy,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
 		return
 	}
 
@@ -574,7 +574,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 		r.URL.Query(),
 		&params.SortDir,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
 		return
 	}
 
@@ -599,7 +599,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 	// Invoke the callback with all the unmarshalled arguments
 	resp, err := siw.handler.GetMarkers(logging.LoggerWithComponent(l, "handler"), r, courseId, params)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 
@@ -607,7 +607,7 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(200)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 }
@@ -620,10 +620,10 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 	)
 
 	ctx := r.Context()
-	cw := uhttp.NewResponseWriter(w,
+	w = uhttp.NewResponseWriter(w,
 		uhttp.WithDefaultStatusCode(http.StatusOK),
 		uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
-		uhttp.WithDefaultHeader(uhttp.HeaderContentType, uhttp.ContentTypeJSON),
+		uhttp.WithDefaultHeader(uhttp.HeaderContentType, "application/json; charset=utf-8"),
 	)
 
 	// ------------- Path parameter "marker_id" -------------
@@ -635,7 +635,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		&markerId,
 		runtime.BindStyledParameterOptions{Explode: false, Required: true},
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "marker_id", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "marker_id", Err: err})
 		return
 	}
 
@@ -651,7 +651,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.Limit,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "limit", Err: err})
 		return
 	}
 
@@ -664,7 +664,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.LastVal,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_val", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_val", Err: err})
 		return
 	}
 
@@ -677,7 +677,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.LastId,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "last_id", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "last_id", Err: err})
 		return
 	}
 
@@ -690,7 +690,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.Offset,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "offset", Err: err})
 		return
 	}
 
@@ -703,7 +703,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.SortBy,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_by", Err: err})
 		return
 	}
 
@@ -716,7 +716,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 		r.URL.Query(),
 		&params.SortDir,
 	); err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
+		siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "sort_dir", Err: err})
 		return
 	}
 
@@ -741,7 +741,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 	// Invoke the callback with all the unmarshalled arguments
 	resp, err := siw.handler.GetHoles(logging.LoggerWithComponent(l, "handler"), r, markerId, params)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 
@@ -749,7 +749,7 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(200)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		siw.errorHandlerFunc(ctx, l, cw, err)
+		siw.errorHandlerFunc(ctx, l, w, err)
 		return
 	}
 }
