@@ -174,7 +174,7 @@ github.com/jacobbrewer1/pagefilter/common
 ## explicit; go 1.24
 github.com/jacobbrewer1/patcher
 github.com/jacobbrewer1/patcher/inserter
-# github.com/jacobbrewer1/uhttp v0.0.13-0.20250414080934-0c18ab69190a
+# github.com/jacobbrewer1/uhttp v0.0.13-0.20250414085454-40df962cc42d
 ## explicit; go 1.24
 github.com/jacobbrewer1/uhttp
 github.com/jacobbrewer1/uhttp/common
