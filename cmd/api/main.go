@@ -15,9 +15,12 @@ import (
 	apiSvc "github.com/jacobbrewer1/golf-data/pkg/services/api"
 	"github.com/jacobbrewer1/golf-data/pkg/services/api/domain"
 	"github.com/jacobbrewer1/uhttp"
+	"github.com/jacobbrewer1/utils"
+	"github.com/jacobbrewer1/vaulty"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -30,6 +33,23 @@ func main() {
 		logging.WithAppName(appName),
 	)
 
+	web.VaultClient = func(ctx context.Context, l *slog.Logger, v *viper.Viper) (vaulty.Client, error) {
+		addr := v.GetString("vault.address")
+
+		vc, err := vaulty.NewClient(
+			vaulty.WithContext(ctx),
+			vaulty.WithAddr(addr),
+			vaulty.WithTokenAuth(v.GetString("vault.token")),
+			vaulty.WithKvv2Mount(v.GetString("vault.kvv2_mount")),
+			vaulty.WithLogger(l),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error creating vault client: %w", err)
+		}
+
+		return vc, nil
+	}
+
 	a, err := web.NewApp(l)
 	if err != nil {
 		l.Error("failed to create web app", slog.String(logging.KeyError, err.Error()))
@@ -40,32 +60,45 @@ func main() {
 	if err := a.Start(
 		web.WithVaultClient(),
 		web.WithDatabaseFromVault(),
+		web.WithRedisPool(),
 		web.WithDependencyBootstrap(func(ctx context.Context) error {
 			svcRepo := repo.NewRepository(a.DBConn())
 			dom := domain.NewDomain(svcRepo)
 			svc := apiSvc.NewService(dom)
 
-			rateLimiter := uhttp.NewRateLimiter(10, 50,
+			rateLimiter := uhttp.NewRedisRateLimiter(a.RedisPool(), 1, 5,
 				uhttp.WithLogger(logging.LoggerWithComponent(l, "rate-limiter")),
 			)
 
 			api.RegisterUnauthedHandlers(r, svc,
 				api.WithLogger(logging.LoggerWithComponent(l, "gateway")),
 				api.WithRateLimiter(func(_ context.Context, r *http.Request) bool {
-					clientToken := r.Header.Get("X-Client-Token") // Custom header for device/app identification
-					if clientToken == "" {
-						clientToken = r.RemoteAddr // Fallback to remote address if no token is provided
-
-						// Remove the port from the remote address as this can change
-						clientToken, _, err = net.SplitHostPort(clientToken)
-						if err != nil {
-							clientToken = r.RemoteAddr // Fallback to remote address if split fails
-							a.Logger().Warn("failed to split host and port", slog.String(logging.KeyError, err.Error()))
+					hostOnly := func(host string) string {
+						if host == "" {
+							return ""
 						}
+						host, _, err := net.SplitHostPort(host)
+						if err != nil {
+							a.Logger().Warn("failed to split host and port", slog.String(logging.KeyError, err.Error()))
+							return host
+						}
+						return host
 					}
 
-					method := r.Method
-					key := fmt.Sprintf("client:%s:method:%s", clientToken, method)
+					host := hostOnly(r.RemoteAddr)
+
+					clientToken := r.Header.Get("X-Client-Token") // Custom header for device/app identification
+					if clientToken == "" {
+						clientToken = host // Fallback to remote address if no token is provided
+					}
+
+					agent := r.Header.Get("User-Agent") // Custom header for device identification
+					if agent == "" {
+						agent = host // Fallback to remote address if no agent is provided
+					}
+
+					key := fmt.Sprintf("client:%s:agent:%s", clientToken, agent)
+					key = utils.Sha256([]byte(key))
 					return rateLimiter.Allow(key)
 				}),
 			)
@@ -82,6 +115,14 @@ func main() {
 			),
 			health.NewCheck("vault", func(ctx context.Context) error {
 				if _, err := a.VaultClient().Client().Auth().Token().LookupSelf(); err != nil {
+					return err
+				}
+				return nil
+			},
+				health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(l, "health-check"))),
+			),
+			health.NewCheck("keydb", func(ctx context.Context) error {
+				if _, err := a.RedisPool().DoCtx(ctx, "PING"); err != nil {
 					return err
 				}
 				return nil

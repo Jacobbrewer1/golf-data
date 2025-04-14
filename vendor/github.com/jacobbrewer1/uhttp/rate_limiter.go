@@ -14,7 +14,8 @@ type RateLimiter interface {
 }
 
 type rateLimiter struct {
-	l *slog.Logger
+	ctx context.Context
+	l   *slog.Logger
 
 	// limiter is the limiter.
 	limiters sync.Map
@@ -33,6 +34,7 @@ func NewRateLimiter(rps float64, burst int, opts ...RateLimiterOption) RateLimit
 	}
 
 	rl := &rateLimiter{
+		ctx:   context.Background(),
 		rps:   rps,
 		burst: burst,
 	}
