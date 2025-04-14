@@ -296,7 +296,6 @@ func (siw *ServerInterfaceWrapper) GetClubs(w http.ResponseWriter, r *http.Reque
 
 	if siw.rateLimiter != nil {
 		if !siw.rateLimiter(ctx, r) {
-			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
 			encodeErrorResponse(w, &uhttp.HTTPError{
 				ErrorMessage: common.ErrorMessage{
 					Title:     http.StatusText(http.StatusTooManyRequests),
@@ -438,7 +437,6 @@ func (siw *ServerInterfaceWrapper) GetCourses(w http.ResponseWriter, r *http.Req
 
 	if siw.rateLimiter != nil {
 		if !siw.rateLimiter(ctx, r) {
-			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
 			encodeErrorResponse(w, &uhttp.HTTPError{
 				ErrorMessage: common.ErrorMessage{
 					Title:     http.StatusText(http.StatusTooManyRequests),
@@ -580,7 +578,6 @@ func (siw *ServerInterfaceWrapper) GetMarkers(w http.ResponseWriter, r *http.Req
 
 	if siw.rateLimiter != nil {
 		if !siw.rateLimiter(ctx, r) {
-			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
 			encodeErrorResponse(w, &uhttp.HTTPError{
 				ErrorMessage: common.ErrorMessage{
 					Title:     http.StatusText(http.StatusTooManyRequests),
@@ -722,7 +719,6 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 
 	if siw.rateLimiter != nil {
 		if !siw.rateLimiter(ctx, r) {
-			siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
 			encodeErrorResponse(w, &uhttp.HTTPError{
 				ErrorMessage: common.ErrorMessage{
 					Title:     http.StatusText(http.StatusTooManyRequests),
@@ -755,12 +751,11 @@ func (siw *ServerInterfaceWrapper) GetHoles(w http.ResponseWriter, r *http.Reque
 }
 
 // parseRequestBody parses the request body into the expected type.
-func (siw *ServerInterfaceWrapper) parseRequestBody(r *http.Request, dest any) error {
+func (siw *ServerInterfaceWrapper) parseRequestBody(r *http.Request, contentType string, dest any) error {
 	if r.Body == http.NoBody {
 		return &UnmarshalingBodyError{Err: errors.New("empty body")}
 	}
 
-	contentType := r.Header.Get(uhttp.HeaderContentType)
 	switch contentType {
 	case "application/json":
 		decoder := json.NewDecoder(r.Body)

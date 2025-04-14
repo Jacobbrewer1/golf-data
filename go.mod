@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/vault/api v1.16.0
 	github.com/jacobbrewer1/pagefilter v0.1.8
 	github.com/jacobbrewer1/patcher v0.1.21
-	github.com/jacobbrewer1/uhttp v0.0.13-0.20250411102847-43169762e062
+	github.com/jacobbrewer1/uhttp v0.0.13-0.20250414080934-0c18ab69190a
 	github.com/jacobbrewer1/utils v0.0.1
 	github.com/jacobbrewer1/vaulty v0.1.10
 	github.com/jacobbrewer1/web v0.0.5-0.20250411113251-53d0e928fa16
@@ -132,3 +132,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace github.com/jacobbrewer1/uhttp => ../uhttp

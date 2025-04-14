@@ -3,6 +3,7 @@ package uhttp
 const (
 	loggingKeyError = "err"
 	loggingKeyKey   = "key"
+	loggingKeyCount = "count"
 
 	defaultHttpErrorDetail = "An error occurred"
 

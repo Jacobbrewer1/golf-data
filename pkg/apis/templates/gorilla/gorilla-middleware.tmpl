@@ -284,7 +284,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Requ
   {{with .TypeDef $opid}}
     // ------------- Body parameter for {{$opid}} for {{$contentType}} ContentType -------------
     jsonBody := new({{.TypeName}})
-    if err := siw.parseRequestBody(r, jsonBody); err != nil {
+    if err := siw.parseRequestBody(r, $contentType, jsonBody); err != nil {
         siw.errorHandlerFunc(ctx, l, w, err)
         return
     } else if jsonBody == nil {
@@ -301,7 +301,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Requ
       File: new(openapi_types.File),
     }
 
-    if err := siw.parseRequestBody(r, body.File); err != nil {
+    if err := siw.parseRequestBody(r, $contentType, body.File); err != nil {
         siw.errorHandlerFunc(ctx, l, w, err)
         return
     }
@@ -323,7 +323,6 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Requ
 
   if siw.rateLimiter != nil {
     if !siw.rateLimiter(ctx, r) {
-        siw.l.Debug("Rate limit exceeded", slog.String(loggingKeyError, "rate limit exceeded"))
         encodeErrorResponse(w, &uhttp.HTTPError{
             ErrorMessage: common.ErrorMessage{
                 Title:  http.StatusText(http.StatusTooManyRequests),
@@ -384,12 +383,11 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Requ
 {{end}}
 
 // parseRequestBody parses the request body into the expected type.
-func (siw *ServerInterfaceWrapper) parseRequestBody(r *http.Request, dest any) error {
+func (siw *ServerInterfaceWrapper) parseRequestBody(r *http.Request, contentType string, dest any) error {
     if r.Body == http.NoBody {
         return &UnmarshalingBodyError{Err: errors.New("empty body")}
     }
 
-    contentType := r.Header.Get(uhttp.HeaderContentType)
     switch contentType {
     case "application/json":
         decoder := json.NewDecoder(r.Body)
