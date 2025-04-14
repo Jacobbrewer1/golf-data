@@ -45,25 +45,29 @@ func NewRedisRateLimiter(keydb goredis.Pool, rps float64, burst int, opts ...Rat
 
 // Allow returns true if the request is allowed.
 func (r *redisRateLimiter) Allow(key string) bool {
-	key = "rate_limiter:" + key
+	ctx := context.Background()
+	redisKey := "rate_limit:" + key
 
-	count, err := redis.Int64(r.keydb.DoCtx(r.ctx, "INCR", key))
+	// Try to set key with value 1 and 1-second TTL if not exists
+	setReply, err := redis.String(r.keydb.DoCtx(ctx, "SET", redisKey, 1, "EX", int(r.window.Seconds()), "NX"))
 	if err != nil {
-		r.log(slog.LevelError, "failed to increment rate limiter", slog.String(loggingKeyKey, key), slog.String(loggingKeyError, err.Error()))
+		r.log(slog.LevelError, "failed to set rate limit key", slog.String(loggingKeyKey, redisKey), slog.String(loggingKeyError, err.Error()))
+		return false
+	} else if setReply == "OK" {
+		// Key was created — allow request
+		return true
+	}
+
+	// Key exists, increment count
+	reply, err := r.keydb.DoCtx(ctx, "INCR", redisKey)
+	if err != nil {
 		return false
 	}
 
-	if count == 1 {
-		_, err = r.keydb.DoCtx(r.ctx, "EXPIRE", key, int(r.window.Seconds()))
-		if err != nil {
-			r.log(slog.LevelError, "failed to set rate limiter expiration", slog.String(loggingKeyKey, key), slog.String(loggingKeyError, err.Error()))
-			return false
-		}
-	}
-
-	if count > int64(r.burst) {
+	count, ok := reply.(int64)
+	if !ok {
 		return false
 	}
 
-	return true
+	return count <= int64(r.burst)
 }
