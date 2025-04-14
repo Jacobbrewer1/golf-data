@@ -151,6 +151,8 @@ github.com/jacobbrewer1/pagefilter v0.1.8 h1:FCqzyGjJcAdPOfpWp637PtVCFFuzaAeENIQ
 github.com/jacobbrewer1/pagefilter v0.1.8/go.mod h1:0ug6IiNhbXs+q1ghOFsVPqG+Ny11TlTTGF8Tp32BmtU=
 github.com/jacobbrewer1/patcher v0.1.21 h1:n+PsOX4aoCHhL0MVRNb9X6yGpzUytSde+Gf3rF2Y5Xg=
 github.com/jacobbrewer1/patcher v0.1.21/go.mod h1:U+a0VBXB4BNL/KqBjkZdiTZ5y4jo9iShsACRSyytTNQ=
+github.com/jacobbrewer1/uhttp v0.0.13-0.20250414080934-0c18ab69190a h1:gOH1qw9TKcX8oVklwCI887ijXIsmfpfsqTOZk7aHNJo=
+github.com/jacobbrewer1/uhttp v0.0.13-0.20250414080934-0c18ab69190a/go.mod h1:KG5kjZaqWlFZp/YdKObH16c05BQqAY7uVa9ZmirtDSY=
 github.com/jacobbrewer1/utils v0.0.1 h1:kx57NtBgO/c7rCw2QqYY34lCgoS9/VwUjjNvUtgCsS4=
 github.com/jacobbrewer1/utils v0.0.1/go.mod h1:rmV+MkOgtyJWsGau9q3a4sZNuLzLACTZOMpbgfrpO7s=
 github.com/jacobbrewer1/vaulty v0.1.10 h1:8GT7fzQsZKh2hd4cY1OqYXXJVWb5f26Jab0KMKvJ15U=
