@@ -47,7 +47,7 @@ func main() {
 			dom := domain.NewDomain(svcRepo)
 			svc := apiSvc.NewService(dom)
 
-			rateLimiter := uhttp.NewRedisRateLimiter(a.RedisPool(), 1, 5,
+			rateLimiter := uhttp.NewRedisRateLimiter(a.RedisPool(), 10, 25,
 				uhttp.WithLogger(logging.LoggerWithComponent(l, "rate-limiter")),
 			)
 
