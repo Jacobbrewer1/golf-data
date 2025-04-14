@@ -2,6 +2,7 @@ package uhttp
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -50,7 +51,7 @@ func (r *redisRateLimiter) Allow(key string) bool {
 
 	// Try to set key with value 1 and 1-second TTL if not exists
 	setReply, err := redis.String(r.keydb.DoCtx(ctx, "SET", redisKey, 1, "EX", int(r.window.Seconds()), "NX"))
-	if err != nil {
+	if err != nil && !errors.Is(err, redis.ErrNil) {
 		r.log(slog.LevelError, "failed to set rate limit key", slog.String(loggingKeyKey, redisKey), slog.String(loggingKeyError, err.Error()))
 		return false
 	} else if setReply == "OK" {
