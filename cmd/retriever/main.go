@@ -38,6 +38,7 @@ func NewApp(l *slog.Logger) (*App, error) {
 
 func (a *App) Start() error {
 	if err := a.base.Start(
+		web.WithViperConfig(),
 		web.WithWorkerPool(),
 		web.WithInClusterKubeClient(),
 		web.WithLeaderElection(appName),
