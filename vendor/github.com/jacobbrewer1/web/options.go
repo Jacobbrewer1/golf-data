@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jacobbrewer1/goredis"
 	"github.com/jacobbrewer1/vaulty"
@@ -19,7 +20,9 @@ import (
 	"github.com/jacobbrewer1/workerpool"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection"
@@ -29,11 +32,15 @@ import (
 
 const (
 	inClusterNatsEndpoint = "nats://nats-headless.nats:4222"
+
+	leaderElectionLeaseDuration = 15 * time.Second
+	leaderElectionRenewDeadline = 10 * time.Second
+	leaderElectionRetryPeriod   = 2 * time.Second
 )
 
 var (
-	ErrNilVaultClient = errors.New("nil vault client")
-	ErrNoHostname     = errors.New("no hostname provided")
+	// ErrNoHostname is returned when the hostname is not set.
+	ErrNoHostname = errors.New("no hostname provided")
 )
 
 // AsyncTaskFunc is a function that performs an async task.
@@ -41,10 +48,39 @@ type AsyncTaskFunc = func(ctx context.Context)
 
 type StartOption func(*App) error
 
+// WithViperConfig is a StartOption that sets up the viper config.
+func WithViperConfig() StartOption {
+	return func(a *App) error {
+		vip := viper.New()
+		vip.SetConfigFile(a.baseCfg.ConfigLocation)
+		if err := vip.ReadInConfig(); err != nil {
+			return fmt.Errorf("error reading config file into viper: %w", err)
+		}
+		a.vip = vip
+		return nil
+	}
+}
+
+// WithConfigWatchers is a StartOption that registers functions to be called when the config file changes.
+func WithConfigWatchers(fn ...func()) StartOption {
+	return func(a *App) error {
+		vip := a.Viper()
+		vip.OnConfigChange(func(e fsnotify.Event) {
+			a.l.Info("Config file changed", slog.String(logging.KeyFile, e.Name))
+			for _, f := range fn {
+				f()
+			}
+		})
+		vip.WatchConfig()
+		return nil
+	}
+}
+
 // WithVaultClient is a StartOption that sets up the vault client.
 func WithVaultClient() StartOption {
 	return func(a *App) error {
-		vc, err := VaultClient(a.baseCtx, logging.LoggerWithComponent(a.l, "vault"), a.vip)
+		vip := a.Viper()
+		vc, err := VaultClient(a.baseCtx, logging.LoggerWithComponent(a.Logger(), "vault"), vip)
 		if err != nil {
 			return fmt.Errorf("error getting vault client: %w", err)
 		}
@@ -57,17 +93,15 @@ func WithVaultClient() StartOption {
 // WithDatabaseFromVault is a StartOption that sets up the database from vault.
 func WithDatabaseFromVault() StartOption {
 	return func(a *App) error {
-		vc := a.vaultClient
-		if vc == nil {
-			return ErrNilVaultClient
-		}
+		vc := a.VaultClient()
+		vip := a.Viper()
 
 		vs, err := vc.Path(
-			a.vip.GetString("vault.database.role"),
-			vaulty.WithPrefix(a.vip.GetString("vault.database.path")),
+			vip.GetString("vault.database.role"),
+			vaulty.WithPrefix(vip.GetString("vault.database.path")),
 		).GetSecret(a.baseCtx)
 		if errors.Is(err, vaulty.ErrSecretNotFound) {
-			return fmt.Errorf("secrets not found in vault: %s", a.vip.GetString("vault.database.path"))
+			return fmt.Errorf("secrets not found in vault: %s", vip.GetString("vault.database.path"))
 		} else if err != nil {
 			return fmt.Errorf("error getting secrets from vault: %w", err)
 		}
@@ -76,7 +110,7 @@ func WithDatabaseFromVault() StartOption {
 			repositories.WithContext(a.baseCtx),
 			repositories.WithVaultClient(vc),
 			repositories.WithCurrentSecrets(vs),
-			repositories.WithViper(a.vip),
+			repositories.WithViper(vip),
 			repositories.WithConnectorLogger(logging.LoggerWithComponent(a.l, "database_connector")),
 		)
 		if err != nil {
@@ -114,13 +148,17 @@ func WithInClusterKubeClient() StartOption {
 // WithLeaderElection is a StartOption that sets up leader election.
 func WithLeaderElection(lockName string) StartOption {
 	return func(a *App) error {
-		if a.kubeClient == nil {
-			return errors.New("must set up kube client before leader election, ensure WithInClusterKubeClient is called")
-		} else if utils.PodName == "" {
+		switch {
+		case utils.PodName == "":
 			return ErrNoHostname
+		case lockName == "":
+			return errors.New("lock name cannot be empty")
 		}
 
-		klog.SetSlogLogger(logging.LoggerWithComponent(a.l, "klog"))
+		l := a.Logger()
+		kubeClient := a.KubeClient()
+
+		klog.SetSlogLogger(logging.LoggerWithComponent(l, "klog"))
 
 		a.leaderChange = make(chan struct{})
 
@@ -137,23 +175,23 @@ func WithLeaderElection(lockName string) StartOption {
 					Name:      lockName,
 					Namespace: ns,
 				},
-				Client: a.kubeClient.CoordinationV1(),
+				Client: kubeClient.CoordinationV1(),
 				LockConfig: resourcelock.ResourceLockConfig{
 					Identity: utils.PodName,
 				},
 			},
-			LeaseDuration: 15 * time.Second,
-			RenewDeadline: 10 * time.Second,
-			RetryPeriod:   2 * time.Second,
+			LeaseDuration: leaderElectionLeaseDuration,
+			RenewDeadline: leaderElectionRenewDeadline,
+			RetryPeriod:   leaderElectionRetryPeriod,
 			Callbacks: leaderelection.LeaderCallbacks{
 				OnStartedLeading: func(ctx context.Context) {
-					a.l.Info("Started leading")
+					l.Info("Started leading")
 				},
 				OnStoppedLeading: func() {
-					a.l.Info("Stopped leading")
+					l.Info("Stopped leading")
 				},
 				OnNewLeader: func(identity string) {
-					a.l.Info("Leader Changed",
+					l.Info("Leader Changed",
 						slog.String(logging.KeyIdentity, identity),
 					)
 
@@ -192,7 +230,7 @@ func WithHealthCheck(checks ...*health.Check) StartOption {
 		a.servers.Store("health", &http.Server{
 			Addr:              fmt.Sprintf(":%d", HealthPort),
 			Handler:           checker.Handler(),
-			ReadHeaderTimeout: 10 * time.Second,
+			ReadHeaderTimeout: httpReadHeaderTimeout,
 		})
 
 		return nil
@@ -202,30 +240,30 @@ func WithHealthCheck(checks ...*health.Check) StartOption {
 // WithRedisPool is a StartOption that sets up the redis pool.
 func WithRedisPool() StartOption {
 	return func(a *App) error {
-		vc := a.vaultClient
-		if vc == nil {
-			return ErrNilVaultClient
-		}
+		vip := a.Viper()
+		vc := a.VaultClient()
+		l := a.Logger()
 
-		keydbSecret, err := vc.Path(a.vip.GetString("vault.keydb.name")).GetKvSecretV2(a.baseCtx)
+		keydbPath := vip.GetString("vault.keydb.name")
+		keydbSecret, err := vc.Path(keydbPath).GetKvSecretV2(a.baseCtx)
 		if errors.Is(err, vaulty.ErrSecretNotFound) {
-			return fmt.Errorf("secrets not found in vault: %s", a.vip.GetString("vault.keydb.path"))
+			return fmt.Errorf("keydb secrets not found in vault path: %s", keydbPath)
 		} else if err != nil {
-			return fmt.Errorf("error getting secrets from vault: %w", err)
+			return fmt.Errorf("error getting keydb secrets from vault: %w", err)
 		}
 
 		redisPassword, ok := keydbSecret.Data["password"].(string)
 		if !ok {
-			return errors.New("keydb type assertion failed")
+			return fmt.Errorf("invalid password type in keydb secret at path: %s", keydbPath)
 		}
 
 		rp, err := goredis.NewPool(
-			goredis.WithLogger(logging.LoggerWithComponent(a.l, "goredis")),
-			goredis.WithAddress(a.vip.GetString("keydb.address")),
-			goredis.WithNetwork(a.vip.GetString("keydb.network")),
+			goredis.WithLogger(logging.LoggerWithComponent(l, "goredis")),
+			goredis.WithAddress(vip.GetString("keydb.address")),
+			goredis.WithNetwork(vip.GetString("keydb.network")),
 			goredis.WithDialOpts(
 				redis.DialPassword(redisPassword),
-				redis.DialDatabase(a.vip.GetInt("keydb.database")),
+				redis.DialDatabase(vip.GetInt("keydb.database")),
 			),
 		)
 		if err != nil {
@@ -275,9 +313,8 @@ func WithIndefiniteAsyncTask(name string, fn AsyncTaskFunc) StartOption {
 // WithServiceEndpointHashBucket is a StartOption that sets up the service endpoint hash bucket.
 func WithServiceEndpointHashBucket(appName string) StartOption {
 	return func(a *App) error {
-		if a.kubeClient == nil {
-			return errors.New("must set up kube client before service endpoint hash bucket, ensure WithInClusterKubeClient is called")
-		}
+		kubeClient := a.KubeClient()
+		l := a.Logger()
 
 		ns, err := utils.GetDeployedKubernetesNamespace()
 		if err != nil {
@@ -285,8 +322,8 @@ func WithServiceEndpointHashBucket(appName string) StartOption {
 		}
 
 		sb := cache.NewServiceEndpointHashBucket(
-			logging.LoggerWithComponent(a.l, "service_endpoint_hash_bucket"),
-			a.kubeClient,
+			logging.LoggerWithComponent(l, "service_endpoint_hash_bucket"),
+			kubeClient,
 			appName,
 			ns,
 			utils.PodName,
@@ -301,6 +338,10 @@ func WithServiceEndpointHashBucket(appName string) StartOption {
 // WithNatsClient is a StartOption that sets up the nats client.
 func WithNatsClient(target string) StartOption {
 	return func(a *App) error {
+		if target == "" {
+			return errors.New("target cannot be empty")
+		}
+
 		nc, err := nats.Connect(target)
 		if err != nil {
 			return fmt.Errorf("failed to connect to nats: %w", err)
@@ -319,7 +360,9 @@ func WithInClusterNatsClient() StartOption {
 // WithNatsJetStream is a StartOption that sets up nats jetstream with the given stream name, retention policy, and subjects.
 func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPolicy, subjects []string) StartOption {
 	return func(a *App) error {
-		js, err := jetstream.New(a.natsClient)
+		natsClient := a.NatsClient()
+
+		js, err := jetstream.New(natsClient)
 		if err != nil {
 			return fmt.Errorf("failed to create jetstream: %w", err)
 		}
@@ -340,6 +383,36 @@ func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPol
 			return fmt.Errorf("failed to get stream: %w", err)
 		}
 
+		return nil
+	}
+}
+
+// WithKubernetesPodInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Pod objects.
+func WithKubernetesPodInformer(informerOptions ...informers.SharedInformerOption) StartOption {
+	return func(a *App) error {
+		l := a.Logger()
+
+		initKubernetesInformerFactory(a, informerOptions...)
+
+		l.Info("creating kubernetes pod informer")
+		base := a.kubernetesInformerFactory.Core().V1().Pods()
+		a.podInformer = base.Informer()
+		a.podLister = base.Lister()
+		return nil
+	}
+}
+
+// WithKubernetesSecretInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Secret objects.
+func WithKubernetesSecretInformer(informerOptions ...informers.SharedInformerOption) StartOption {
+	return func(a *App) error {
+		l := a.Logger()
+
+		initKubernetesInformerFactory(a, informerOptions...)
+
+		l.Info("creating kubernetes secret informer")
+		base := a.kubernetesInformerFactory.Core().V1().Secrets()
+		a.secretInformer = base.Informer()
+		a.secretLister = base.Lister()
 		return nil
 	}
 }

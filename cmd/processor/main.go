@@ -39,6 +39,7 @@ func NewApp(l *slog.Logger) (*App, error) {
 
 func (a *App) Start() error {
 	if err := a.base.Start(
+		web.WithViperConfig(),
 		web.WithVaultClient(),
 		web.WithDatabaseFromVault(),
 		web.WithInClusterNatsClient(),

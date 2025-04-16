@@ -45,4 +45,7 @@ const (
 
 	// KeyHandler represents the key for the handler.
 	KeyHandler = `handler`
+
+	// KeyFile represents the key for the file.
+	KeyFile = `file`
 )

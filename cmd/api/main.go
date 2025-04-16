@@ -39,6 +39,7 @@ func main() {
 
 	r := mux.NewRouter()
 	if err := a.Start(
+		web.WithViperConfig(),
 		web.WithVaultClient(),
 		web.WithDatabaseFromVault(),
 		web.WithRedisPool(),
