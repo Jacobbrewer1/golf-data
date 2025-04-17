@@ -80,7 +80,7 @@ func WithConfigWatchers(fn ...func()) StartOption {
 func WithVaultClient() StartOption {
 	return func(a *App) error {
 		vip := a.Viper()
-		vc, err := VaultClient(a.baseCtx, logging.LoggerWithComponent(a.Logger(), "vault"), vip)
+		vc, err := VaultClient(a.baseCtx, logging.LoggerWithComponent(a.l, "vault"), vip)
 		if err != nil {
 			return fmt.Errorf("error getting vault client: %w", err)
 		}
@@ -149,35 +149,28 @@ func WithInClusterKubeClient() StartOption {
 func WithLeaderElection(lockName string) StartOption {
 	return func(a *App) error {
 		switch {
-		case utils.PodName == "":
+		case utils.PodName() == "":
 			return ErrNoHostname
 		case lockName == "":
 			return errors.New("lock name cannot be empty")
 		}
 
-		l := a.Logger()
 		kubeClient := a.KubeClient()
 
-		klog.SetSlogLogger(logging.LoggerWithComponent(l, "klog"))
+		klog.SetSlogLogger(logging.LoggerWithComponent(a.l, "klog"))
 
 		a.leaderChange = make(chan struct{})
-
-		// Get the deployed namespace
-		ns, err := utils.GetDeployedKubernetesNamespace()
-		if err != nil {
-			return fmt.Errorf("failed to get deployed namespace: %w", err)
-		}
 
 		// Create the leader election
 		le, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 			Lock: &resourcelock.LeaseLock{
 				LeaseMeta: v1.ObjectMeta{
 					Name:      lockName,
-					Namespace: ns,
+					Namespace: utils.DeployedNamespace(),
 				},
 				Client: kubeClient.CoordinationV1(),
 				LockConfig: resourcelock.ResourceLockConfig{
-					Identity: utils.PodName,
+					Identity: utils.PodName(),
 				},
 			},
 			LeaseDuration: leaderElectionLeaseDuration,
@@ -185,13 +178,13 @@ func WithLeaderElection(lockName string) StartOption {
 			RetryPeriod:   leaderElectionRetryPeriod,
 			Callbacks: leaderelection.LeaderCallbacks{
 				OnStartedLeading: func(ctx context.Context) {
-					l.Info("Started leading")
+					a.l.Info("Started leading")
 				},
 				OnStoppedLeading: func() {
-					l.Info("Stopped leading")
+					a.l.Info("Stopped leading")
 				},
 				OnNewLeader: func(identity string) {
-					l.Info("Leader Changed",
+					a.l.Info("Leader Changed",
 						slog.String(logging.KeyIdentity, identity),
 					)
 
@@ -242,7 +235,6 @@ func WithRedisPool() StartOption {
 	return func(a *App) error {
 		vip := a.Viper()
 		vc := a.VaultClient()
-		l := a.Logger()
 
 		keydbPath := vip.GetString("vault.keydb.name")
 		keydbSecret, err := vc.Path(keydbPath).GetKvSecretV2(a.baseCtx)
@@ -258,7 +250,7 @@ func WithRedisPool() StartOption {
 		}
 
 		rp, err := goredis.NewPool(
-			goredis.WithLogger(logging.LoggerWithComponent(l, "goredis")),
+			goredis.WithLogger(logging.LoggerWithComponent(a.l, "goredis")),
 			goredis.WithAddress(vip.GetString("keydb.address")),
 			goredis.WithNetwork(vip.GetString("keydb.network")),
 			goredis.WithDialOpts(
@@ -313,20 +305,12 @@ func WithIndefiniteAsyncTask(name string, fn AsyncTaskFunc) StartOption {
 // WithServiceEndpointHashBucket is a StartOption that sets up the service endpoint hash bucket.
 func WithServiceEndpointHashBucket(appName string) StartOption {
 	return func(a *App) error {
-		kubeClient := a.KubeClient()
-		l := a.Logger()
-
-		ns, err := utils.GetDeployedKubernetesNamespace()
-		if err != nil {
-			return fmt.Errorf("failed to get deployed namespace: %w", err)
-		}
-
 		sb := cache.NewServiceEndpointHashBucket(
-			logging.LoggerWithComponent(l, "service_endpoint_hash_bucket"),
-			kubeClient,
+			logging.LoggerWithComponent(a.l, "service_endpoint_hash_bucket"),
+			a.KubeClient(),
 			appName,
-			ns,
-			utils.PodName,
+			utils.DeployedNamespace(),
+			utils.PodName(),
 		)
 
 		a.serviceEndpointHashBucket = sb
@@ -390,11 +374,9 @@ func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPol
 // WithKubernetesPodInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Pod objects.
 func WithKubernetesPodInformer(informerOptions ...informers.SharedInformerOption) StartOption {
 	return func(a *App) error {
-		l := a.Logger()
-
 		initKubernetesInformerFactory(a, informerOptions...)
 
-		l.Info("creating kubernetes pod informer")
+		a.l.Info("creating kubernetes pod informer")
 		base := a.kubernetesInformerFactory.Core().V1().Pods()
 		a.podInformer = base.Informer()
 		a.podLister = base.Lister()
@@ -405,11 +387,9 @@ func WithKubernetesPodInformer(informerOptions ...informers.SharedInformerOption
 // WithKubernetesSecretInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Secret objects.
 func WithKubernetesSecretInformer(informerOptions ...informers.SharedInformerOption) StartOption {
 	return func(a *App) error {
-		l := a.Logger()
-
 		initKubernetesInformerFactory(a, informerOptions...)
 
-		l.Info("creating kubernetes secret informer")
+		a.l.Info("creating kubernetes secret informer")
 		base := a.kubernetesInformerFactory.Core().V1().Secrets()
 		a.secretInformer = base.Informer()
 		a.secretLister = base.Lister()
