@@ -1,18 +1,25 @@
 package utils
 
-import "os"
+import (
+	"os"
+	"sync"
+)
 
 const (
 	// kubeNamespacePath is the path to the Kubernetes namespace file
 	kubernetesNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
 
-var PodName = os.Getenv("HOSTNAME")
+// PodName returns the name of the pod. By default, Kubernetes sets the pod name as the HOSTNAME environment variable.
+var PodName = sync.OnceValue(func() string {
+	return os.Getenv("HOSTNAME")
+})
 
-func GetDeployedKubernetesNamespace() (string, error) {
+// DeployedNamespace returns the namespace in which the pod is deployed. This is read from the Kubernetes namespace file.
+var DeployedNamespace = sync.OnceValue(func() string {
 	got, err := os.ReadFile(kubernetesNamespacePath)
 	if err != nil {
-		return "", err
+		return "default" // Fallback to default namespace if the file is not found
 	}
-	return string(got), nil
-}
+	return string(got)
+})

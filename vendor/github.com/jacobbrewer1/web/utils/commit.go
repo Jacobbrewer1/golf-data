@@ -3,6 +3,7 @@ package utils
 import (
 	"runtime/debug"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -17,7 +18,8 @@ const (
 	modifiedKey = "vcs.modified" // Set to true (as a string) if the binary was built from a working directory containing uncommitted changes.
 )
 
-var GitCommit = func() string {
+// GitCommit returns the git commit hash of the current build.
+var GitCommit = sync.OnceValue(func() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
 			if setting.Key != revisionKey {
@@ -27,9 +29,10 @@ var GitCommit = func() string {
 		}
 	}
 	return ""
-}
+})
 
-var CommitTimestamp = func() time.Time {
+// CommitTimestamp returns the timestamp of the commit.
+var CommitTimestamp = sync.OnceValue(func() time.Time {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
 			if setting.Key != buildDateKey {
@@ -45,9 +48,10 @@ var CommitTimestamp = func() time.Time {
 		}
 	}
 	return time.Time{}
-}
+})
 
-var IsModified = func() bool {
+// IsModified returns true if the binary was built from a working directory containing uncommitted changes.
+var IsModified = sync.OnceValue(func() bool {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
 			if setting.Key != modifiedKey {
@@ -63,4 +67,4 @@ var IsModified = func() bool {
 		}
 	}
 	return false
-}
+})

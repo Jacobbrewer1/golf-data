@@ -11,7 +11,7 @@ require (
 	github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81
 	github.com/jacobbrewer1/utils v0.0.1
 	github.com/jacobbrewer1/vaulty v0.1.10
-	github.com/jacobbrewer1/web v0.0.5-0.20250416144409-1a7897751d55
+	github.com/jacobbrewer1/web v0.0.5-0.20250417084959-f2ec19cc3940
 	github.com/jacobbrewer1/workerpool v0.0.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/magefile/mage v1.15.0
@@ -107,13 +107,13 @@ require (
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.35.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.25.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/term v0.29.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect

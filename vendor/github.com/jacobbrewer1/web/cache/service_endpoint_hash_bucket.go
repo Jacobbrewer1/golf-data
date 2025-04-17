@@ -141,3 +141,7 @@ func endpointsToSet(endpoints *corev1.Endpoints) *slices.Set[string] {
 
 	return s
 }
+
+func (sb *ServiceEndpointHashBucket) Shutdown() {
+	sb.informerFactory.Shutdown()
+}

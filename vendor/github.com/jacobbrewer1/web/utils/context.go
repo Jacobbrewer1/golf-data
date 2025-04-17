@@ -10,6 +10,7 @@ import (
 	"github.com/jacobbrewer1/web/logging"
 )
 
+// GetInterruptedContext returns a context that is cancelled when an interrupt signal is received.
 func GetInterruptedContext(l *slog.Logger) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
