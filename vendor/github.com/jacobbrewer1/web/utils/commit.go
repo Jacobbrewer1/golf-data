@@ -62,7 +62,6 @@ var IsModified = sync.OnceValue(func() bool {
 			if err != nil {
 				return false
 			}
-
 			return containsChanges
 		}
 	}

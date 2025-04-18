@@ -12,7 +12,19 @@ const (
 
 // PodName returns the name of the pod. By default, Kubernetes sets the pod name as the HOSTNAME environment variable.
 var PodName = sync.OnceValue(func() string {
-	return os.Getenv("HOSTNAME")
+	hostname, err := os.Hostname()
+	if err == nil {
+		return hostname
+	}
+
+	// Attempt to read the pod name from the environment variable
+	hostname = os.Getenv("HOSTNAME")
+	if hostname != "" {
+		return hostname
+	}
+
+	// Fallback to an empty string if both methods fail
+	return ""
 })
 
 // DeployedNamespace returns the namespace in which the pod is deployed. This is read from the Kubernetes namespace file.

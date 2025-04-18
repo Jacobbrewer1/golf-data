@@ -75,17 +75,17 @@ func RegisterUnauthedHandlers(router *mux.Router, si ServerInterface, opts ...Se
         {{- if $unauth }}
             router.Methods(http.Method{{.Method | lower | title }}).
             Path("{{.Path | swaggerUriToGorillaUri}}").
-            Handler(uhttp.WrapHandler(
+            Handler(web.WrapHandler(
                 wrapper.{{.OperationId}},
-                uhttp.InstrumentCounter(TotalRequests),
-                uhttp.InstrumentCounter({{.OperationId}}TotalRequests),
-                uhttp.InstrumentDuration({{.OperationId}}RequestDuration),
+                metrics.InstrumentCounter(TotalRequests),
+                metrics.InstrumentCounter({{.OperationId}}TotalRequests),
+                metrics.InstrumentDuration({{.OperationId}}RequestDuration),
                 {{ if ne .Method "GET" -}}
                     uhttp.InstrumentRequestSize({{.OperationId}}RequestSize),
                 {{ end -}}
-                uhttp.InstrumentResponseSize({{.OperationId}}ResponseSize),
+                metrics.InstrumentResponseSize({{.OperationId}}ResponseSize),
             ))
-        {{ end }}
+        {{ end -}}
     {{ end -}}
 }
 {{ end -}}

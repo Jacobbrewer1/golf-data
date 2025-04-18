@@ -11,7 +11,7 @@ require (
 	github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81
 	github.com/jacobbrewer1/utils v0.0.1
 	github.com/jacobbrewer1/vaulty v0.1.10
-	github.com/jacobbrewer1/web v0.0.5-0.20250417084959-f2ec19cc3940
+	github.com/jacobbrewer1/web v0.0.6-0.20250418084451-bd0441f683ef
 	github.com/jacobbrewer1/workerpool v0.0.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/magefile/mage v1.15.0

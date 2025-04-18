@@ -17,6 +17,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var _ HashBucket = new(ServiceEndpointHashBucket)
+
 // ServiceEndpointHashBucket represents a mechanism which determines whether the current application instance should process
 // a particular key. The bucket size is determined by the number of active endpoints in the supplied Kubernetes service.
 type ServiceEndpointHashBucket struct {
@@ -142,6 +144,7 @@ func endpointsToSet(endpoints *corev1.Endpoints) *slices.Set[string] {
 	return s
 }
 
+// Shutdown stops the informer factory and cleans up resources.
 func (sb *ServiceEndpointHashBucket) Shutdown() {
 	sb.informerFactory.Shutdown()
 }

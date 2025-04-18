@@ -35,6 +35,7 @@ const (
 	MetricsPort = 9090
 	HealthPort  = 9091
 
+	// httpReadHeaderTimeout is the amount of time allowed to read request headers.
 	httpReadHeaderTimeout = 10 * time.Second
 	shutdownTimeout       = 15 * time.Second
 )
@@ -124,6 +125,9 @@ type (
 		// indefiniteAsyncTasks is the list of indefinite async tasks for the application.
 		indefiniteAsyncTasks sync.Map
 
+		// fixedHashBucket is the fixed hash bucket for the application.
+		fixedHashBucket *cache.FixedHashBucket
+
 		// serviceEndpointHashBucket is the service endpoint hash bucket for the application.
 		serviceEndpointHashBucket *cache.ServiceEndpointHashBucket
 
@@ -144,7 +148,7 @@ func NewApp(l *slog.Logger) (*App, error) {
 		return nil, ErrNilLogger
 	}
 
-	baseCtx, baseCtxCancel := utils.GetInterruptedContext(l)
+	baseCtx, baseCtxCancel := CoreContext()
 
 	baseCfg := new(AppConfig)
 	if err := env.Parse(baseCfg); err != nil {
@@ -200,39 +204,49 @@ func (a *App) Start(opts ...StartOption) error {
 			go a.leaderElection.Run(a.baseCtx)
 		}
 
+		var serverErr error
 		a.servers.Range(func(name, srv any) bool {
 			serverName, ok := name.(string)
 			if !ok {
-				a.l.Error("failed to cast server name to string")
+				serverErr = errors.New("failed to cast server name to string")
 				return false
 			}
 
 			server, ok := srv.(*http.Server)
 			if !ok {
-				a.l.Error("failed to cast server to http.Server")
+				serverErr = fmt.Errorf("failed to cast server %s to http.Server", serverName)
 				return false
 			}
 
 			a.startServer(serverName, server)
 			return true
 		})
+		if serverErr != nil {
+			startErr = fmt.Errorf("server initialization error: %w", serverErr)
+			return
+		}
 
+		var taskErr error
 		a.indefiniteAsyncTasks.Range(func(name, fn any) bool {
 			taskName, ok := name.(string)
 			if !ok {
-				a.l.Error("failed to cast task name to string")
+				taskErr = errors.New("failed to cast task name to string")
 				return false
 			}
 
 			taskFn, ok := fn.(AsyncTaskFunc)
 			if !ok {
-				a.l.Error("failed to cast task function to AsyncTaskFunc")
+				taskErr = fmt.Errorf("failed to cast task function %s to AsyncTaskFunc", taskName)
 				return false
 			}
 
 			a.startAsyncTask(taskName, true, taskFn)
 			return true
 		})
+		if taskErr != nil { // nolint:revive // Traditional error handling
+			startErr = fmt.Errorf("async task initialization error: %w", taskErr)
+			return
+		}
 	})
 
 	a.waitUntilStarted()
@@ -245,7 +259,8 @@ func (a *App) Start(opts ...StartOption) error {
 	return startErr
 }
 
-// startServer starts the given server.
+// startServer starts the given server and adds it to the shutdown wait group.
+// It logs the server status and handles graceful shutdown.
 func (a *App) startServer(name string, srv *http.Server) {
 	l := a.l.With(slog.String(logging.KeyServer, name))
 
@@ -431,7 +446,9 @@ func (a *App) StartServer(name string, srv *http.Server) error {
 	return nil
 }
 
-// startAsyncTask starts async task f.
+// startAsyncTask starts an async task with the given name and function.
+// If indefinite is true, the task is expected to run until the application shuts down.
+// The function will trigger application shutdown if an indefinite task ends unexpectedly.
 func (a *App) startAsyncTask(name string, indefinite bool, fn AsyncTaskFunc) {
 	a.l.Info("starting async task", slog.String(logging.KeyName, name))
 	a.shutdownWg.Add(1)
@@ -514,6 +531,15 @@ func (a *App) CreateNatsJetStreamConsumer(consumerName, subjectFilter string) (j
 	return cons, nil
 }
 
+// FixedHashBucket returns the fixed hash bucket for the application.
+func (a *App) FixedHashBucket() *cache.FixedHashBucket {
+	if a.fixedHashBucket == nil {
+		a.l.Error("fixed hash bucket has not been registered")
+		panic("fixed hash bucket has not been registered")
+	}
+	return a.fixedHashBucket
+}
+
 // ServiceEndpointHashBucket returns the service endpoint hash bucket for the application.
 func (a *App) ServiceEndpointHashBucket() *cache.ServiceEndpointHashBucket {
 	if a.serviceEndpointHashBucket == nil {
@@ -568,6 +594,8 @@ func (a *App) SecretInformer() kubeCache.SharedIndexInformer {
 	return a.secretInformer
 }
 
+// waitUntilStarted blocks until the application has completed its startup sequence.
+// It panics if the isStartedChan is not initialized.
 func (a *App) waitUntilStarted() {
 	if a.isStartedChan == nil {
 		a.l.Error("isStartedChan has not been registered")

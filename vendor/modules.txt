@@ -185,12 +185,13 @@ github.com/jacobbrewer1/utils
 ## explicit; go 1.24
 github.com/jacobbrewer1/vaulty
 github.com/jacobbrewer1/vaulty/repositories
-# github.com/jacobbrewer1/web v0.0.5-0.20250417084959-f2ec19cc3940
+# github.com/jacobbrewer1/web v0.0.6-0.20250418084451-bd0441f683ef
 ## explicit; go 1.24
 github.com/jacobbrewer1/web
 github.com/jacobbrewer1/web/cache
 github.com/jacobbrewer1/web/health
 github.com/jacobbrewer1/web/logging
+github.com/jacobbrewer1/web/metrics
 github.com/jacobbrewer1/web/slices
 github.com/jacobbrewer1/web/utils
 # github.com/jacobbrewer1/workerpool v0.0.4

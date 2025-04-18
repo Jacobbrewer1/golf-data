@@ -15,7 +15,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jacobbrewer1/uhttp"
 	"github.com/jacobbrewer1/uhttp/common"
+	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/logging"
+	"github.com/jacobbrewer1/web/metrics"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/prometheus/client_golang/prometheus"
@@ -975,42 +977,41 @@ func RegisterUnauthedHandlers(router *mux.Router, si ServerInterface, opts ...Se
 
 	router.Methods(http.MethodGet).
 		Path("/clubs").
-		Handler(uhttp.WrapHandler(
+		Handler(web.WrapHandler(
 			wrapper.GetClubs,
-			uhttp.InstrumentCounter(TotalRequests),
-			uhttp.InstrumentCounter(GetClubsTotalRequests),
-			uhttp.InstrumentDuration(GetClubsRequestDuration),
-			uhttp.InstrumentResponseSize(GetClubsResponseSize),
+			metrics.InstrumentCounter(TotalRequests),
+			metrics.InstrumentCounter(GetClubsTotalRequests),
+			metrics.InstrumentDuration(GetClubsRequestDuration),
+			metrics.InstrumentResponseSize(GetClubsResponseSize),
 		))
 
 	router.Methods(http.MethodGet).
 		Path("/clubs/{club_id}/courses").
-		Handler(uhttp.WrapHandler(
+		Handler(web.WrapHandler(
 			wrapper.GetCourses,
-			uhttp.InstrumentCounter(TotalRequests),
-			uhttp.InstrumentCounter(GetCoursesTotalRequests),
-			uhttp.InstrumentDuration(GetCoursesRequestDuration),
-			uhttp.InstrumentResponseSize(GetCoursesResponseSize),
+			metrics.InstrumentCounter(TotalRequests),
+			metrics.InstrumentCounter(GetCoursesTotalRequests),
+			metrics.InstrumentDuration(GetCoursesRequestDuration),
+			metrics.InstrumentResponseSize(GetCoursesResponseSize),
 		))
 
 	router.Methods(http.MethodGet).
 		Path("/courses/{course_id}/markers").
-		Handler(uhttp.WrapHandler(
+		Handler(web.WrapHandler(
 			wrapper.GetMarkers,
-			uhttp.InstrumentCounter(TotalRequests),
-			uhttp.InstrumentCounter(GetMarkersTotalRequests),
-			uhttp.InstrumentDuration(GetMarkersRequestDuration),
-			uhttp.InstrumentResponseSize(GetMarkersResponseSize),
+			metrics.InstrumentCounter(TotalRequests),
+			metrics.InstrumentCounter(GetMarkersTotalRequests),
+			metrics.InstrumentDuration(GetMarkersRequestDuration),
+			metrics.InstrumentResponseSize(GetMarkersResponseSize),
 		))
 
 	router.Methods(http.MethodGet).
 		Path("/markers/{marker_id}/holes").
-		Handler(uhttp.WrapHandler(
+		Handler(web.WrapHandler(
 			wrapper.GetHoles,
-			uhttp.InstrumentCounter(TotalRequests),
-			uhttp.InstrumentCounter(GetHolesTotalRequests),
-			uhttp.InstrumentDuration(GetHolesRequestDuration),
-			uhttp.InstrumentResponseSize(GetHolesResponseSize),
+			metrics.InstrumentCounter(TotalRequests),
+			metrics.InstrumentCounter(GetHolesTotalRequests),
+			metrics.InstrumentDuration(GetHolesRequestDuration),
+			metrics.InstrumentResponseSize(GetHolesResponseSize),
 		))
-
 }
