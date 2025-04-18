@@ -7,10 +7,12 @@ import (
 	"strings"
 )
 
+// NewLogger creates a new logger with the default configuration.
 func NewLogger(opts ...Option) *slog.Logger {
 	return NewLoggerWithWriter(os.Stdout, opts...)
 }
 
+// NewLoggerWithWriter creates a new logger with the given writer and options.
 func NewLoggerWithWriter(writer io.Writer, opts ...Option) *slog.Logger {
 	logCfg := newLoggingConfig()
 
@@ -27,6 +29,7 @@ func NewLoggerWithWriter(writer io.Writer, opts ...Option) *slog.Logger {
 	return l
 }
 
+// LoggerWithComponent returns a new logger with the given component name.
 func LoggerWithComponent(l *slog.Logger, component string) *slog.Logger {
 	return l.With(
 		slog.String(KeyComponent, component),
@@ -34,7 +37,7 @@ func LoggerWithComponent(l *slog.Logger, component string) *slog.Logger {
 }
 
 // replaceAttrs is a slog.HandlerOptions.ReplaceAttr function that replaces some attributes.
-func replaceAttrs(_ []string, a slog.Attr) slog.Attr {
+func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 	if a.Key == slog.SourceKey {
 		// Cut the source file to a relative path.
 		v := strings.Split(a.Value.String(), "/")

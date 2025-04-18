@@ -5,11 +5,23 @@ import (
 	"log/slog"
 )
 
+var _ slog.Handler = new(dedupeHandler)
+
+// dedupeHandler is a slog.Handler that deduplicates attributes.
 type dedupeHandler struct {
+	// base is the underlying slog.Handler to which we delegate
 	base slog.Handler
 
 	// precomputed deduplicated attributes — immutable
 	attrs []slog.Attr
+}
+
+// NewDedupeHandler creates a new slog.Handler that deduplicates attributes.
+func NewDedupeHandler(base slog.Handler) slog.Handler {
+	return &dedupeHandler{
+		base:  base,
+		attrs: make([]slog.Attr, 0),
+	}
 }
 
 func (d *dedupeHandler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -52,12 +64,5 @@ func (d *dedupeHandler) WithGroup(name string) slog.Handler {
 	return &dedupeHandler{
 		base:  d.base.WithGroup(name),
 		attrs: d.attrs,
-	}
-}
-
-func NewDedupeHandler(base slog.Handler) slog.Handler {
-	return &dedupeHandler{
-		base:  base,
-		attrs: make([]slog.Attr, 0),
 	}
 }

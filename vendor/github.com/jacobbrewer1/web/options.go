@@ -31,11 +31,17 @@ import (
 )
 
 const (
+	// inClusterNatsEndpoint is the default NATS endpoint for in-cluster communication.
 	inClusterNatsEndpoint = "nats://nats-headless.nats:4222"
 
+	// leaderElectionLeaseDuration is the duration that non-leader candidates will wait to force acquire leadership.
 	leaderElectionLeaseDuration = 15 * time.Second
+
+	// leaderElectionRenewDeadline is the duration that the acting leader will retry refreshing leadership before giving up.
 	leaderElectionRenewDeadline = 10 * time.Second
-	leaderElectionRetryPeriod   = 2 * time.Second
+
+	// leaderElectionRetryPeriod is the duration the LeaderElector clients should wait between tries of actions.
+	leaderElectionRetryPeriod = 2 * time.Second
 )
 
 var (
@@ -43,9 +49,12 @@ var (
 	ErrNoHostname = errors.New("no hostname provided")
 )
 
-// AsyncTaskFunc is a function that performs an async task.
-type AsyncTaskFunc = func(ctx context.Context)
+// AsyncTaskFunc is a function that runs asynchronously and takes a context.
+// The function should respect the context cancellation and return when the context is done.
+type AsyncTaskFunc = func(context.Context)
 
+// StartOption is a function that configures the application during startup.
+// It returns an error if the configuration fails.
 type StartOption func(*App) error
 
 // WithViperConfig is a StartOption that sets up the viper config.
@@ -145,7 +154,9 @@ func WithInClusterKubeClient() StartOption {
 	}
 }
 
-// WithLeaderElection is a StartOption that sets up leader election.
+// WithLeaderElection is a StartOption that sets up leader election using Kubernetes lease locks.
+// The lockName parameter specifies the name of the lease lock resource to be created.
+// Returns an error if the pod name is not set or if the lock name is empty.
 func WithLeaderElection(lockName string) StartOption {
 	return func(a *App) error {
 		switch {
@@ -298,6 +309,15 @@ func WithDependencyBootstrap(fn func(ctx context.Context) error) StartOption {
 func WithIndefiniteAsyncTask(name string, fn AsyncTaskFunc) StartOption {
 	return func(a *App) error {
 		a.indefiniteAsyncTasks.Store(name, fn)
+		return nil
+	}
+}
+
+// WithFixedHashBucket is a StartOption that sets up the fixed hash bucket.
+func WithFixedHashBucket(size uint) StartOption {
+	return func(a *App) error {
+		hb := cache.NewFixedHashBucket(size)
+		a.fixedHashBucket = hb
 		return nil
 	}
 }
