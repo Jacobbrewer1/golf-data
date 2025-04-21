@@ -4,10 +4,13 @@ components:
     limit_param:
       name: limit
       in: query
-      description: Report type
+      description: Pagination details, maximum number of records to return.
       schema:
         type: integer
-        example: 10
+        example: 100
+        default: 100
+        minimum: 1
+        maximum: 20000
     last_value:
       name: last_val
       in: query
@@ -27,6 +30,8 @@ components:
       schema:
         type: integer
         example: 0
+        default: 0
+        minimum: 0
     sort_by:
       name: sort_by
       in: query
