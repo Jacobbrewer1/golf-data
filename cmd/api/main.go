@@ -16,11 +16,9 @@ import (
 	"github.com/jacobbrewer1/golf-data/pkg/services/api/domain"
 	"github.com/jacobbrewer1/uhttp"
 	"github.com/jacobbrewer1/utils"
-	"github.com/jacobbrewer1/vaulty"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/spf13/viper"
 )
 
 const (
