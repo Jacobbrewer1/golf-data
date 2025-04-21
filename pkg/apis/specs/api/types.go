@@ -79,7 +79,7 @@ type GetMarkersResponse struct {
 
 // GetClubsParams defines parameters for GetClubs.
 type GetClubsParams struct {
-	// Limit Report type
+	// Limit Pagination details, maximum number of records to return.
 	Limit *externalRef0.LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// LastVal Pagination details, last value of the sort column on the previous page.
@@ -106,7 +106,7 @@ type GetClubsParamsSortDir string
 
 // GetCoursesParams defines parameters for GetCourses.
 type GetCoursesParams struct {
-	// Limit Report type
+	// Limit Pagination details, maximum number of records to return.
 	Limit *externalRef0.LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// LastVal Pagination details, last value of the sort column on the previous page.
@@ -130,7 +130,7 @@ type GetCoursesParamsSortDir string
 
 // GetMarkersParams defines parameters for GetMarkers.
 type GetMarkersParams struct {
-	// Limit Report type
+	// Limit Pagination details, maximum number of records to return.
 	Limit *externalRef0.LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// LastVal Pagination details, last value of the sort column on the previous page.
@@ -154,7 +154,7 @@ type GetMarkersParamsSortDir string
 
 // GetHolesParams defines parameters for GetHoles.
 type GetHolesParams struct {
-	// Limit Report type
+	// Limit Pagination details, maximum number of records to return.
 	Limit *externalRef0.LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// LastVal Pagination details, last value of the sort column on the previous page.
