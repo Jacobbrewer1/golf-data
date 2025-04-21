@@ -15,7 +15,7 @@ import (
 	"github.com/jacobbrewer1/goredis"
 	"github.com/jacobbrewer1/uhttp"
 	"github.com/jacobbrewer1/vaulty"
-	"github.com/jacobbrewer1/vaulty/repositories"
+	"github.com/jacobbrewer1/vaulty/vsql"
 	"github.com/jacobbrewer1/web/cache"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/jacobbrewer1/web/utils"
@@ -90,7 +90,7 @@ type (
 		shutdownWg *sync.WaitGroup
 
 		// db is the database for the application.
-		db *repositories.Database
+		db *vsql.Database
 
 		// kubeClient interacts with the Kubernetes API server.
 		kubeClient kubernetes.Interface
@@ -387,7 +387,7 @@ func (a *App) Viper() *viper.Viper {
 }
 
 // DBConn returns the database connection for the application.
-func (a *App) DBConn() *repositories.Database {
+func (a *App) DBConn() *vsql.Database {
 	if a.db == nil {
 		a.l.Error("database connection has not been registered")
 		panic("database connection has not been registered")

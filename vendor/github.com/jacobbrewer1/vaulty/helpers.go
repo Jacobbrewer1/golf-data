@@ -1,6 +1,10 @@
 package vaulty
 
-import hashiVault "github.com/hashicorp/vault/api"
+import (
+	"fmt"
+
+	hashiVault "github.com/hashicorp/vault/api"
+)
 
 func CipherTextFromSecret(transitEncryptSecret *hashiVault.Secret) string {
 	switch {
@@ -18,4 +22,11 @@ func CipherTextFromSecret(transitEncryptSecret *hashiVault.Secret) string {
 	}
 
 	return ct
+}
+
+func uintToInt(u uint) (int, error) {
+	if u > uint(maxInt) {
+		return 0, fmt.Errorf("uint value %d overflows int", u)
+	}
+	return int(u), nil
 }

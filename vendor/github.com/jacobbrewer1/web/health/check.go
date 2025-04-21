@@ -20,8 +20,8 @@ type Check struct {
 	// timeout is the timeout for the check.
 	timeout time.Duration
 
-	// maxTimeInError is the maximum time the check can be in an error state.
-	maxTimeInError time.Duration
+	// errorGracePeriod is the maximum time the check can be in an error state.
+	errorGracePeriod time.Duration
 
 	// maxContiguousFails is the maximum number of contiguous fails.
 	maxContiguousFails uint
@@ -89,25 +89,31 @@ func (c *Check) Check(ctx context.Context) error {
 	}()
 
 	if err := c.check(checkCtx); err != nil {
-		newStatus = StatusDown
 		c.state.contiguousFails++
-		if c.maxContiguousFails > 0 && c.state.contiguousFails < c.maxContiguousFails {
-			newStatus = StatusUp
+		c.state.checkErr = err
+		c.state.lastFail = now
+
+		if c.state.firstFailInCycle.IsZero() {
+			c.state.firstFailInCycle = now
 		}
 
+		// Determine status based on grace period and contiguous fails
+		newStatus = StatusDown
+		if c.errorGracePeriod > 0 && now.Sub(c.state.firstFailInCycle) <= c.errorGracePeriod {
+			newStatus = StatusUp // Still within grace period
+		} else if c.maxContiguousFails > 0 && c.state.contiguousFails < c.maxContiguousFails {
+			newStatus = StatusUp // Still within fail threshold
+		}
+
+		// Handle custom status errors
 		statusErr := new(StatusError)
 		if errors.As(err, &statusErr) {
 			if !statusErr.Status.IsValid() {
 				statusErr.Status = StatusUnknown
 			}
-
 			newStatus = statusErr.Status
 		}
 
-		c.state.checkErr = err
-		c.state.lastFail = now
-
-		c.state.checkErr = err
 		return err
 	}
 
@@ -115,6 +121,7 @@ func (c *Check) Check(ctx context.Context) error {
 	c.state.lastSuccess = now
 	c.state.contiguousFails = 0
 	c.state.checkErr = nil
+	c.state.firstFailInCycle = time.Time{}
 
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 	hashiVault "github.com/hashicorp/vault/api"
 )
 
-func monitorWatcher(ctx context.Context, l *slog.Logger, name string, watcher *hashiVault.LifetimeWatcher) (renewResult, error) {
+func monitorWatcher(ctx context.Context, l *slog.Logger, token string, watcher *hashiVault.LifetimeWatcher) (renewResult, error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -29,7 +29,7 @@ func monitorWatcher(ctx context.Context, l *slog.Logger, name string, watcher *h
 		case info := <-watcher.RenewCh():
 			l.Info("renewal successful",
 				slog.String(loggingKeyRenewedAt, info.RenewedAt.String()),
-				slog.String(loggingKeySecretName, name),
+				slog.String(loggingKeySecretName, token),
 				slog.String(loggingKeyLeaseDuration, fmt.Sprintf("%ds", info.Secret.LeaseDuration)),
 			)
 		}

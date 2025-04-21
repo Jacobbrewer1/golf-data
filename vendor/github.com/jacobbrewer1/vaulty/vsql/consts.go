@@ -1,4 +1,4 @@
-package repositories
+package vsql
 
 const (
 	loggingKeyError = "err"

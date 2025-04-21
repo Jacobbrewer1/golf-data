@@ -13,6 +13,9 @@ type State struct {
 	// lastFail is the last time the check failed.
 	lastFail time.Time
 
+	// firstFailInCycle is the first time the check failed in the current cycle.
+	firstFailInCycle time.Time
+
 	// contiguousFails is the number of contiguous failures.
 	contiguousFails uint
 

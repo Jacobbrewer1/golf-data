@@ -26,9 +26,9 @@ func WithNoCheckTimeout() CheckOption {
 }
 
 // WithCheckErrorGracePeriod sets the maximum time the check can be in an error state before it is marked as down.
-func WithCheckErrorGracePeriod(maxTimeInError time.Duration) CheckOption {
+func WithCheckErrorGracePeriod(errorGracePeriod time.Duration) CheckOption {
 	return func(c *Check) {
-		c.maxTimeInError = maxTimeInError
+		c.errorGracePeriod = errorGracePeriod
 	}
 }
 

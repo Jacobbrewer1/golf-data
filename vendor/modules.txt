@@ -30,7 +30,7 @@ github.com/dprotaso/go-yit
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
-# github.com/fsnotify/fsnotify v1.8.0
+# github.com/fsnotify/fsnotify v1.9.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
 github.com/fsnotify/fsnotify/internal
@@ -59,7 +59,7 @@ github.com/go-openapi/jsonreference/internal
 # github.com/go-openapi/swag v0.23.0
 ## explicit; go 1.20
 github.com/go-openapi/swag
-# github.com/go-sql-driver/mysql v1.9.1
+# github.com/go-sql-driver/mysql v1.9.2
 ## explicit; go 1.21.0
 github.com/go-sql-driver/mysql
 # github.com/go-viper/mapstructure/v2 v2.2.1
@@ -181,11 +181,11 @@ github.com/jacobbrewer1/uhttp/common
 # github.com/jacobbrewer1/utils v0.0.1
 ## explicit; go 1.23.2
 github.com/jacobbrewer1/utils
-# github.com/jacobbrewer1/vaulty v0.1.10
+# github.com/jacobbrewer1/vaulty v0.1.12
 ## explicit; go 1.24
 github.com/jacobbrewer1/vaulty
-github.com/jacobbrewer1/vaulty/repositories
-# github.com/jacobbrewer1/web v0.0.6-0.20250418084451-bd0441f683ef
+github.com/jacobbrewer1/vaulty/vsql
+# github.com/jacobbrewer1/web v0.0.6-0.20250421074945-b534681566ab
 ## explicit; go 1.24
 github.com/jacobbrewer1/web
 github.com/jacobbrewer1/web/cache
@@ -247,7 +247,7 @@ github.com/mohae/deepcopy
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
-# github.com/nats-io/nats.go v1.41.1
+# github.com/nats-io/nats.go v1.41.2
 ## explicit; go 1.23.0
 github.com/nats-io/nats.go
 github.com/nats-io/nats.go/encoders/builtin
@@ -255,8 +255,8 @@ github.com/nats-io/nats.go/internal/parser
 github.com/nats-io/nats.go/internal/syncx
 github.com/nats-io/nats.go/jetstream
 github.com/nats-io/nats.go/util
-# github.com/nats-io/nkeys v0.4.9
-## explicit; go 1.20
+# github.com/nats-io/nkeys v0.4.11
+## explicit; go 1.23.0
 github.com/nats-io/nkeys
 # github.com/nats-io/nuid v1.0.1
 ## explicit

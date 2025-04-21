@@ -2,7 +2,7 @@ package vaulty
 
 type PathOption func(p *SecretPath)
 
-func WithVersion(version int) PathOption {
+func WithVersion(version uint) PathOption {
 	return func(p *SecretPath) {
 		p.version = version
 	}
