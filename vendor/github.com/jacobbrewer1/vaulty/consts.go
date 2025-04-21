@@ -1,6 +1,8 @@
 package vaulty
 
 const (
+	maxInt = int(^uint(0) >> 1) // maximum value for int
+
 	loggingKeyError         = "err"
 	loggingKeySecretName    = "secret"
 	loggingKeyResult        = "result"

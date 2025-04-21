@@ -12,7 +12,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jacobbrewer1/goredis"
 	"github.com/jacobbrewer1/vaulty"
-	"github.com/jacobbrewer1/vaulty/repositories"
+	"github.com/jacobbrewer1/vaulty/vsql"
 	"github.com/jacobbrewer1/web/cache"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
@@ -115,23 +115,16 @@ func WithDatabaseFromVault() StartOption {
 			return fmt.Errorf("error getting secrets from vault: %w", err)
 		}
 
-		dbConnector, err := repositories.NewDatabaseConnector(
-			repositories.WithContext(a.baseCtx),
-			repositories.WithVaultClient(vc),
-			repositories.WithCurrentSecrets(vs),
-			repositories.WithViper(vip),
-			repositories.WithConnectorLogger(logging.LoggerWithComponent(a.l, "database_connector")),
+		a.db, err = vsql.ConnectDB(
+			a.baseCtx,
+			logging.LoggerWithComponent(a.l, "database_connector"),
+			vc,
+			vip,
+			vs,
 		)
 		if err != nil {
 			return fmt.Errorf("error creating database connector: %w", err)
 		}
-
-		db, err := dbConnector.ConnectDB()
-		if err != nil {
-			return fmt.Errorf("error connecting to database: %w", err)
-		}
-
-		a.db = db
 		return nil
 	}
 }

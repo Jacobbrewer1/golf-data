@@ -33,8 +33,8 @@ type Client interface {
 }
 
 type (
-	RenewalFunc func() (*hashiVault.Secret, error)
-	loginFunc   func(v *hashiVault.Client) (*hashiVault.Secret, error)
+	RenewalFunc = func() (*hashiVault.Secret, error)
+	loginFunc   = func(v *hashiVault.Client) (*hashiVault.Secret, error)
 )
 
 type client struct {
@@ -114,9 +114,9 @@ func (c *client) Client() *hashiVault.Client {
 
 func (c *client) Path(name string, opts ...PathOption) Repository {
 	p := &SecretPath{
-		r:     c,
-		mount: c.kvv2Mount, // Default to kvv2
-		name:  name,
+		client: c,
+		mount:  c.kvv2Mount, // Default to kvv2
+		name:   name,
 	}
 
 	for _, opt := range opts {

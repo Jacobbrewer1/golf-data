@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 
 	hashiVault "github.com/hashicorp/vault/api"
 )
@@ -33,7 +32,14 @@ const (
 // this which are outside the scope of this code sample.
 //
 // ref: https://www.vaultproject.io/docs/enterprise/consistency#vault-1-7-mitigations
-func RenewLease(ctx context.Context, l *slog.Logger, client ClientHandler, name string, credentials *hashiVault.Secret, renewFunc RenewalFunc) error {
+func RenewLease(
+	ctx context.Context,
+	l *slog.Logger,
+	client ClientHandler,
+	name string,
+	credentials *hashiVault.Secret,
+	renewFunc RenewalFunc,
+) error {
 	l.Debug("renewing lease", slog.String(loggingKeySecretName, name))
 
 	currentCreds := credentials
@@ -52,7 +58,7 @@ func RenewLease(ctx context.Context, l *slog.Logger, client ClientHandler, name 
 			newCreds, err := renewFunc()
 			if err != nil {
 				l.Error("unable to renew credentials", slog.String(loggingKeyError, err.Error()))
-				os.Exit(1) // Forces new credentials to be fetched
+				panic("unable to renew credentials") // Panic over os exit. This allows for the program unwind correctly.
 			}
 
 			currentCreds = newCreds
@@ -61,14 +67,20 @@ func RenewLease(ctx context.Context, l *slog.Logger, client ClientHandler, name 
 			return fmt.Errorf("unable to handle watcher result: %w", err)
 		}
 
-		l.Info("lease renewed", slog.String(loggingKeySecretName, name))
+		l.Debug("lease renewed", slog.String(loggingKeySecretName, name))
 	}
 }
 
-func leaseRenew(ctx context.Context, l *slog.Logger, client ClientHandler, name string, credentials *hashiVault.Secret) (renewResult, error) {
+func leaseRenew(
+	ctx context.Context,
+	l *slog.Logger,
+	client ClientHandler,
+	name string,
+	credentials *hashiVault.Secret,
+) (renewResult, error) {
 	credentialsWatcher, err := client.Client().NewLifetimeWatcher(&hashiVault.LifetimeWatcherInput{
 		Secret:    credentials,
-		Increment: 3600,
+		Increment: 3600, // 1 hour
 	})
 	if err != nil {
 		return renewError, fmt.Errorf("unable to initialize credentials lifetime watcher: %w", err)

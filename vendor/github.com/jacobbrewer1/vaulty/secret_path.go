@@ -3,17 +3,18 @@ package vaulty
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	hashiVault "github.com/hashicorp/vault/api"
 )
 
 type SecretPath struct {
-	r       Client
+	client  Client
 	mount   string
 	prefix  string
 	name    string
-	version int
+	version uint
 }
 
 func (c *SecretPath) path() string {
@@ -33,7 +34,12 @@ func (c *SecretPath) pathWithType(k string) string {
 }
 
 func (c *SecretPath) GetKvSecretV2(ctx context.Context) (*hashiVault.KVSecret, error) {
-	secret, err := c.r.Client().KVv2(c.mount).GetVersion(ctx, c.path(), c.version)
+	version, err := uintToInt(c.version)
+	if err != nil {
+		return nil, fmt.Errorf("incompatible version: %w", err)
+	}
+
+	secret, err := c.client.Client().KVv2(c.mount).GetVersion(ctx, c.path(), version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read secret: %w", err)
 	} else if secret == nil {
@@ -43,7 +49,7 @@ func (c *SecretPath) GetKvSecretV2(ctx context.Context) (*hashiVault.KVSecret, e
 }
 
 func (c *SecretPath) GetSecret(ctx context.Context) (*hashiVault.Secret, error) {
-	secret, err := c.r.Client().Logical().ReadWithContext(ctx, c.path())
+	secret, err := c.client.Client().Logical().ReadWithContext(ctx, c.path())
 	if err != nil {
 		return nil, fmt.Errorf("unable to read secrets: %w", err)
 	} else if secret == nil {
@@ -56,7 +62,7 @@ func (c *SecretPath) TransitEncrypt(ctx context.Context, data string) (*hashiVau
 	plaintext := base64.StdEncoding.EncodeToString([]byte(data))
 
 	// Encrypt the data using the transit engine
-	encryptData, err := c.r.Client().Logical().WriteWithContext(ctx, c.pathWithType(pathKeyTransitEncrypt), map[string]any{
+	encryptData, err := c.client.Client().Logical().WriteWithContext(ctx, c.pathWithType(pathKeyTransitEncrypt), map[string]any{
 		TransitKeyPlainText: plaintext,
 	})
 	if err != nil {
@@ -68,15 +74,20 @@ func (c *SecretPath) TransitEncrypt(ctx context.Context, data string) (*hashiVau
 
 func (c *SecretPath) TransitDecrypt(ctx context.Context, data string) (string, error) {
 	// Decrypt the data using the transit engine
-	decryptData, err := c.r.Client().Logical().WriteWithContext(ctx, c.pathWithType(pathKeyTransitDecrypt), map[string]any{
+	decryptData, err := c.client.Client().Logical().WriteWithContext(ctx, c.pathWithType(pathKeyTransitDecrypt), map[string]any{
 		TransitKeyCipherText: data,
 	})
 	if err != nil {
 		return "", fmt.Errorf("unable to decrypt data: %w", err)
 	}
 
+	decryptDataStr, ok := decryptData.Data[TransitKeyPlainText].(string)
+	if !ok {
+		return "", errors.New("unable to convert decrypted data to string")
+	}
+
 	// Decode the base64 encoded data
-	decodedData, err := base64.StdEncoding.DecodeString(decryptData.Data[TransitKeyPlainText].(string))
+	decodedData, err := base64.StdEncoding.DecodeString(decryptDataStr)
 	if err != nil {
 		return "", fmt.Errorf("unable to decode data: %w", err)
 	}

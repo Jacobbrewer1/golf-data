@@ -1,15 +1,15 @@
 package api
 
 import (
-	"github.com/jacobbrewer1/vaulty/repositories"
+	"github.com/jacobbrewer1/vaulty/vsql"
 )
 
 type repository struct {
-	db *repositories.Database
+	db *vsql.Database
 }
 
 // NewRepository creates a new repository.
-func NewRepository(db *repositories.Database) Repository {
+func NewRepository(db *vsql.Database) Repository {
 	return &repository{
 		db: db,
 	}
