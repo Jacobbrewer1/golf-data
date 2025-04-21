@@ -27,7 +27,7 @@ func monitorWatcher(ctx context.Context, l *slog.Logger, token string, watcher *
 			// RenewCh is a channel that receives a message when a successful
 			// renewal takes place and includes metadata about the renewal.
 		case info := <-watcher.RenewCh():
-			l.Info("renewal successful",
+			l.Debug("renewal successful",
 				slog.String(loggingKeyRenewedAt, info.RenewedAt.String()),
 				slog.String(loggingKeySecretName, token),
 				slog.String(loggingKeyLeaseDuration, fmt.Sprintf("%ds", info.Secret.LeaseDuration)),

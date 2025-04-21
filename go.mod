@@ -10,7 +10,7 @@ require (
 	github.com/jacobbrewer1/patcher v0.1.21
 	github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81
 	github.com/jacobbrewer1/utils v0.0.1
-	github.com/jacobbrewer1/vaulty v0.1.13
+	github.com/jacobbrewer1/vaulty v0.1.14
 	github.com/jacobbrewer1/web v0.0.6-0.20250421083732-8bd00ae2a04f
 	github.com/jacobbrewer1/workerpool v0.0.4
 	github.com/jmoiron/sqlx v1.4.0
@@ -19,7 +19,6 @@ require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/prometheus/client_golang v1.22.0
-	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	github.com/vektra/mockery/v2 v2.53.3
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20250317152234-d0a798f77473
@@ -102,6 +101,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect

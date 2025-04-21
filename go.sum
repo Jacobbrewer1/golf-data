@@ -155,8 +155,8 @@ github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81 h1:Wjucavqds
 github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81/go.mod h1:KG5kjZaqWlFZp/YdKObH16c05BQqAY7uVa9ZmirtDSY=
 github.com/jacobbrewer1/utils v0.0.1 h1:kx57NtBgO/c7rCw2QqYY34lCgoS9/VwUjjNvUtgCsS4=
 github.com/jacobbrewer1/utils v0.0.1/go.mod h1:rmV+MkOgtyJWsGau9q3a4sZNuLzLACTZOMpbgfrpO7s=
-github.com/jacobbrewer1/vaulty v0.1.13 h1:fWPyST/aMmQVzSSc+3QylSdMiN5dBporV2VcBTBPLno=
-github.com/jacobbrewer1/vaulty v0.1.13/go.mod h1:hncWoF2yQ+ZJKfoIy7JaGkju+k0hlU6GVBNq2y38e1k=
+github.com/jacobbrewer1/vaulty v0.1.14 h1:SI4qh8l1o2/32yNX/7GxSguGlfy7woSovETdBKvEmOI=
+github.com/jacobbrewer1/vaulty v0.1.14/go.mod h1:hncWoF2yQ+ZJKfoIy7JaGkju+k0hlU6GVBNq2y38e1k=
 github.com/jacobbrewer1/web v0.0.6-0.20250421083732-8bd00ae2a04f h1:3bQPgx+2AxU1vhUqRG7st+pDwk8YlF36YsuUiNhrq7s=
 github.com/jacobbrewer1/web v0.0.6-0.20250421083732-8bd00ae2a04f/go.mod h1:5f8+gDzxbfWtoauR6vnasOScvA/lw5l8qWN3cU7wJ3E=
 github.com/jacobbrewer1/workerpool v0.0.4 h1:jETZCLCXZzzMCRtL0kPae9NTOymbztd4bg4Ba7i1UU8=

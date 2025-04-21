@@ -9,7 +9,7 @@ const (
 	configKeyVaultDatabaseRole = configKeyVaultDatabase + ".role"
 	configKeyVaultDatabasePath = configKeyVaultDatabase + ".path"
 	configKeyDatabaseHost      = configKeyDatabase + ".host"
-	configKeyDatabaseName      = configKeyDatabase + ".name"
+	configKeyDatabaseName      = configKeyDatabase + ".schema"
 
 	secretKeyDatabaseUsername = "username"
 	secretKeyDatabasePassword = "password"
