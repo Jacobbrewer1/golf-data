@@ -6,7 +6,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/vault/api v1.16.0
-	github.com/jacobbrewer1/pagefilter v0.1.8
+	github.com/jacobbrewer1/pagefilter v0.1.9
 	github.com/jacobbrewer1/patcher v0.1.21
 	github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81
 	github.com/jacobbrewer1/utils v0.0.1
