@@ -181,11 +181,11 @@ github.com/jacobbrewer1/uhttp/common
 # github.com/jacobbrewer1/utils v0.0.1
 ## explicit; go 1.23.2
 github.com/jacobbrewer1/utils
-# github.com/jacobbrewer1/vaulty v0.1.12
+# github.com/jacobbrewer1/vaulty v0.1.13
 ## explicit; go 1.24
 github.com/jacobbrewer1/vaulty
 github.com/jacobbrewer1/vaulty/vsql
-# github.com/jacobbrewer1/web v0.0.6-0.20250421074945-b534681566ab
+# github.com/jacobbrewer1/web v0.0.6-0.20250421083732-8bd00ae2a04f
 ## explicit; go 1.24
 github.com/jacobbrewer1/web
 github.com/jacobbrewer1/web/cache

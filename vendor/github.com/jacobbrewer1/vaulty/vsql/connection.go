@@ -26,9 +26,9 @@ func ConnectDB(
 	if vip == nil {
 		return nil, errors.New("no viper configuration provided")
 	}
-	if !vip.IsSet("vault") {
+	if !vip.IsSet(configKeyVault) {
 		return nil, errors.New("no vault configuration found")
-	} else if vip.IsSet("vault.database") {
+	} else if !vip.IsSet(configKeyVaultDatabase) {
 		return nil, errors.New("no vault database configuration found")
 	}
 	if client == nil {
@@ -58,8 +58,8 @@ func ConnectDB(
 			func() (*hashiVault.Secret, error) {
 				l.Warn("Vault lease expired, establishing new database connection")
 
-				newDatabaseCredentials, err := client.Path(vip.GetString("vault.database.role"),
-					vaulty.WithPrefix(vip.GetString("vault.database.path")),
+				newDatabaseCredentials, err := client.Path(vip.GetString(configKeyVaultDatabaseRole),
+					vaulty.WithPrefix(vip.GetString(configKeyVaultDatabasePath)),
 				).GetSecret(ctx)
 				if err != nil {
 					return nil, fmt.Errorf("failed to get new database credentials: %w", err)
@@ -104,12 +104,11 @@ func openDBConnection(ctx context.Context, connectionString string) (*sqlx.DB, e
 }
 
 func connectionStringFromViperAndVaultSecret(vip *viper.Viper, secrets *hashiVault.Secret) string {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		secrets.Data["username"],
-		secrets.Data["password"],
-		vip.GetString("vault.database.host"),
-		vip.GetInt("vault.database.port"),
-		vip.GetString("vault.database.name"),
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s",
+		secrets.Data[secretKeyDatabaseUsername],
+		secrets.Data[secretKeyDatabasePassword],
+		vip.GetString(configKeyDatabaseHost),
+		vip.GetString(configKeyDatabaseName),
 	)
 	return connectionString
 }
