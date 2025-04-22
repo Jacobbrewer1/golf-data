@@ -181,19 +181,20 @@ github.com/jacobbrewer1/uhttp/common
 # github.com/jacobbrewer1/utils v0.0.1
 ## explicit; go 1.23.2
 github.com/jacobbrewer1/utils
-# github.com/jacobbrewer1/vaulty v0.1.14
+# github.com/jacobbrewer1/vaulty v0.1.15-0.20250422083501-a48cb7ba777e
 ## explicit; go 1.24
 github.com/jacobbrewer1/vaulty
 github.com/jacobbrewer1/vaulty/vsql
-# github.com/jacobbrewer1/web v0.0.6-0.20250421083732-8bd00ae2a04f
+# github.com/jacobbrewer1/web v0.0.6-0.20250422084306-f2722098b5d8
 ## explicit; go 1.24
 github.com/jacobbrewer1/web
 github.com/jacobbrewer1/web/cache
 github.com/jacobbrewer1/web/health
+github.com/jacobbrewer1/web/k8s
 github.com/jacobbrewer1/web/logging
 github.com/jacobbrewer1/web/metrics
 github.com/jacobbrewer1/web/slices
-github.com/jacobbrewer1/web/utils
+github.com/jacobbrewer1/web/version
 # github.com/jacobbrewer1/workerpool v0.0.4
 ## explicit; go 1.23
 github.com/jacobbrewer1/workerpool

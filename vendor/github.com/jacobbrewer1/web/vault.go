@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/jacobbrewer1/vaulty"
+	"github.com/jacobbrewer1/web/k8s"
 	"github.com/spf13/viper"
 )
 
@@ -25,7 +26,7 @@ var VaultClient = func(ctx context.Context, l *slog.Logger, v *viper.Viper) (vau
 	vc, err := vaulty.NewClient(
 		vaulty.WithContext(ctx),
 		vaulty.WithAddr(addr),
-		vaulty.WithKubernetesAuthDefault(),
+		vaulty.WithKubernetesServiceAccountAuth(k8s.ServiceAccountName()),
 		vaulty.WithKvv2Mount(v.GetString("vault.kvv2_mount")),
 		vaulty.WithLogger(l),
 	)
