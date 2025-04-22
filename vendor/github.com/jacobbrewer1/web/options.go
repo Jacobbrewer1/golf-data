@@ -15,8 +15,8 @@ import (
 	"github.com/jacobbrewer1/vaulty/vsql"
 	"github.com/jacobbrewer1/web/cache"
 	"github.com/jacobbrewer1/web/health"
+	"github.com/jacobbrewer1/web/k8s"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/jacobbrewer1/web/utils"
 	"github.com/jacobbrewer1/workerpool"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -153,7 +153,7 @@ func WithInClusterKubeClient() StartOption {
 func WithLeaderElection(lockName string) StartOption {
 	return func(a *App) error {
 		switch {
-		case utils.PodName() == "":
+		case k8s.PodName() == "":
 			return ErrNoHostname
 		case lockName == "":
 			return errors.New("lock name cannot be empty")
@@ -170,11 +170,11 @@ func WithLeaderElection(lockName string) StartOption {
 			Lock: &resourcelock.LeaseLock{
 				LeaseMeta: v1.ObjectMeta{
 					Name:      lockName,
-					Namespace: utils.DeployedNamespace(),
+					Namespace: k8s.DeployedNamespace(),
 				},
 				Client: kubeClient.CoordinationV1(),
 				LockConfig: resourcelock.ResourceLockConfig{
-					Identity: utils.PodName(),
+					Identity: k8s.PodName(),
 				},
 			},
 			LeaseDuration: leaderElectionLeaseDuration,
@@ -213,6 +213,10 @@ func WithLeaderElection(lockName string) StartOption {
 // WithHealthCheck is a StartOption that sets up the health2 check.
 func WithHealthCheck(checks ...*health.Check) StartOption {
 	return func(a *App) error {
+		if _, exists := a.servers.Load("health"); exists {
+			return errors.New("health check server already registered")
+		}
+
 		checker, err := health.NewChecker()
 		if err != nil {
 			return fmt.Errorf("error creating health checker: %w", err)
@@ -322,8 +326,8 @@ func WithServiceEndpointHashBucket(appName string) StartOption {
 			logging.LoggerWithComponent(a.l, "service_endpoint_hash_bucket"),
 			a.KubeClient(),
 			appName,
-			utils.DeployedNamespace(),
-			utils.PodName(),
+			k8s.DeployedNamespace(),
+			k8s.PodName(),
 		)
 
 		a.serviceEndpointHashBucket = sb
@@ -365,7 +369,7 @@ func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPol
 		}
 		a.natsJetStream = js
 
-		_, err = js.CreateStream(a.baseCtx, jetstream.StreamConfig{
+		_, err = js.CreateOrUpdateStream(a.baseCtx, jetstream.StreamConfig{
 			Name:      streamName,
 			Subjects:  subjects,
 			Storage:   jetstream.FileStorage,

@@ -10,8 +10,21 @@ type MockClientOption struct {
 }
 
 // Execute provides a mock function with given fields: c
-func (_m *MockClientOption) Execute(c *client) {
-	_m.Called(c)
+func (_m *MockClientOption) Execute(c *client) error {
+	ret := _m.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Execute")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*client) error); ok {
+		r0 = rf(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // NewMockClientOption creates a new instance of MockClientOption. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

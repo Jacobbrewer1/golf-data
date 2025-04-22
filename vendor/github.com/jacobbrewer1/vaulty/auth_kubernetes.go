@@ -31,6 +31,5 @@ func kubernetesLogin(client *hashiVault.Client, role string, token auth.LoginOpt
 	}
 
 	client.SetToken(authInfo.Auth.ClientToken)
-
 	return authInfo, nil
 }

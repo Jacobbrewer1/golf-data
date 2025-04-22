@@ -61,7 +61,9 @@ func NewClient(opts ...ClientOption) (Client, error) {
 	}
 
 	for _, opt := range opts {
-		opt(c)
+		if err := opt(c); err != nil {
+			return nil, fmt.Errorf("unable to apply client option: %w", err)
+		}
 	}
 
 	if c.ctx == nil {

@@ -10,8 +10,8 @@ require (
 	github.com/jacobbrewer1/patcher v0.1.21
 	github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81
 	github.com/jacobbrewer1/utils v0.0.1
-	github.com/jacobbrewer1/vaulty v0.1.14
-	github.com/jacobbrewer1/web v0.0.6-0.20250421083732-8bd00ae2a04f
+	github.com/jacobbrewer1/vaulty v0.1.15-0.20250422083501-a48cb7ba777e
+	github.com/jacobbrewer1/web v0.0.6-0.20250422084306-f2722098b5d8
 	github.com/jacobbrewer1/workerpool v0.0.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/magefile/mage v1.15.0

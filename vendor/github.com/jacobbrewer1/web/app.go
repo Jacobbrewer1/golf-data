@@ -18,7 +18,7 @@ import (
 	"github.com/jacobbrewer1/vaulty/vsql"
 	"github.com/jacobbrewer1/web/cache"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/jacobbrewer1/web/utils"
+	"github.com/jacobbrewer1/web/version"
 	"github.com/jacobbrewer1/workerpool"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -178,9 +178,9 @@ func (a *App) Start(opts ...StartOption) error {
 		defer close(a.isStartedChan)
 
 		a.l.Info("starting application",
-			slog.String(logging.KeyGitCommit, utils.GitCommit()),
+			slog.String(logging.KeyGitCommit, version.GitCommit()),
 			slog.String(logging.KeyRuntime, fmt.Sprintf("%s %s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH)),
-			slog.String(logging.KeyBuildDate, utils.CommitTimestamp().String()),
+			slog.String(logging.KeyBuildDate, version.CommitTimestamp().String()),
 		)
 
 		for _, opt := range opts {
