@@ -123,6 +123,7 @@ jobs:
           DOCKER_REGISTRY: ${{ env.REGISTRY }}/${{ env.LOWER_IMAGE_NAME }}
           DOCKER_PUSH: ${{ github.event_name != 'pull_request' }}
           TAGS: ${{ env.TAGS }}
+          'GOOGLE_APPLICATION_CREDENTIALS_JSON_PATH': ${{ github.workspace }}/gcp-sa-key.json
 
       - name: Clean Docker
         if: ${{ always() }}
