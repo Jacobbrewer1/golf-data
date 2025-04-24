@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "processor",
+    srcs = [
+        "clubs.go",
+        "courses.go",
+        "details.go",
+        "gen.go",
+        "holes.go",
+        "interface.go",
+        "mock_Repository.go",
+        "repository.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/pkg/repositories/processor",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/models",
+        "//pkg/repositories/processor/filters",
+        "@com_github_jacobbrewer1_vaulty//vsql",
+        "@com_github_stretchr_testify//mock",
+    ],
+)

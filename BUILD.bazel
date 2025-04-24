@@ -1,0 +1,18 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_binary")
+
+# Extend the gazelle binary to make it capable of generating go code from protocol buffer definitions.
+gazelle_binary(
+    name = "gazelle-gen",
+    languages = [
+        "@bazel_gazelle//language/go",
+    ],
+)
+
+# gazelle:prefix github.com/jacobbrewer1/golf-data
+# gazelle:exclude vendor
+# gazelle:exclude magefiles
+gazelle(
+    name = "gazelle",
+    gazelle = ":gazelle-gen",
+)

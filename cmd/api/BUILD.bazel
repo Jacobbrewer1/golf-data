@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "api_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/jacobbrewer1/golf-data/cmd/api",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//pkg/apis/specs/api",
+        "//pkg/repositories/api",
+        "//pkg/services/api",
+        "//pkg/services/api/domain",
+        "@com_github_gorilla_mux//:mux",
+        "@com_github_jacobbrewer1_vaulty//:vaulty",
+        "@com_github_jacobbrewer1_web//:web",
+        "@com_github_jacobbrewer1_web//health",
+        "@com_github_jacobbrewer1_web//logging",
+        "@com_github_spf13_viper//:viper",
+    ],
+)
+
+go_binary(
+    name = "api",
+    embed = [":api_lib"],
+    visibility = ["//visibility:public"],
+)

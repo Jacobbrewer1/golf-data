@@ -166,7 +166,7 @@ github.com/invopop/yaml
 # github.com/jacobbrewer1/goredis v0.1.7
 ## explicit; go 1.24
 github.com/jacobbrewer1/goredis
-# github.com/jacobbrewer1/pagefilter v0.1.9
+# github.com/jacobbrewer1/pagefilter v0.1.10
 ## explicit; go 1.24
 github.com/jacobbrewer1/pagefilter
 github.com/jacobbrewer1/pagefilter/common

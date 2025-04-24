@@ -11,9 +11,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/jacobbrewer1/utils"
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
+
+	"github.com/jacobbrewer1/utils"
 )
 
 const (
@@ -21,16 +22,33 @@ const (
 )
 
 var (
-	dockerRegistry = os.Getenv("DOCKER_REGISTRY")
-	envTags        = os.Getenv("TAGS")
-	toPushEnv      = os.Getenv("DOCKER_PUSH")
-	toPush         = false
+	dockerRegistry = sync.OnceValue(func() string {
+		dockerRegistry := os.Getenv("DOCKER_REGISTRY")
+		if dockerRegistry == "" {
+			return ""
+		}
+		return dockerRegistry
+	})
+	envTags = os.Getenv("TAGS")
+	toPush  = sync.OnceValue(func() bool {
+		toPushEnv := os.Getenv("DOCKER_PUSH")
+		if toPushEnv == "" {
+			return false
+		}
+		toPush, err := strconv.ParseBool(toPushEnv)
+		if err != nil {
+			return false
+		}
+		return toPush
+	})
 )
 
 type Image mg.Namespace
 
 // A build step that requires additional params, or platform specific steps for example
 func (i Image) All() error {
+	buildWithBazel("...")
+
 	wg := new(sync.WaitGroup)
 	multiErr := utils.NewMultiError()
 
@@ -47,7 +65,7 @@ func (i Image) All() error {
 			go func(name string) {
 				defer wg.Done()
 
-				if err := i.One(name); err != nil {
+				if err := i.handleOne(name); err != nil {
 					multiErr.Add(err)
 				}
 			}(cmd.Name())
@@ -67,24 +85,26 @@ func (i Image) All() error {
 }
 
 func (i Image) One(appName string) error {
-	toPush, _ = strconv.ParseBool(toPushEnv)
-	fmt.Println("Push images set to: ", toPush)
+	buildWithBazel("cmd/" + appName)
+	return i.handleOne(appName)
+}
 
+// handleOne handles the building and pushing of a single image.
+func (i Image) handleOne(appName string) error {
 	if err := i.buildImage(appName); err != nil {
 		return fmt.Errorf("failed to build image for %s: %w", appName, err)
 	}
 
-	if toPush {
+	if toPush() {
 		if err := i.pushImage(appName); err != nil {
 			return fmt.Errorf("failed to push image for %s: %w", appName, err)
 		}
 	}
-
 	return nil
 }
 
 func (i Image) buildImage(appName string) error {
-	applicationDockerRegistry := dockerRegistry + imageAppSeparator + appName
+	applicationDockerRegistry := dockerRegistry() + imageAppSeparator + appName
 	fmt.Println(applicationDockerRegistry)
 
 	tags := i.imageTags(applicationDockerRegistry)
@@ -121,7 +141,7 @@ func (i Image) buildImage(appName string) error {
 }
 
 func (i Image) pushImage(appName string) error {
-	applicationDockerRegistry := dockerRegistry + imageAppSeparator + appName
+	applicationDockerRegistry := dockerRegistry() + imageAppSeparator + appName
 	fmt.Println(applicationDockerRegistry)
 
 	tags := i.imageTags(applicationDockerRegistry)

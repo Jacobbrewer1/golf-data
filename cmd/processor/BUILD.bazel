@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "processor_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/jacobbrewer1/golf-data/cmd/processor",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//pkg/repositories/processor",
+        "//pkg/services/processor",
+        "//pkg/services/processor/domain",
+        "@com_github_jacobbrewer1_web//:web",
+        "@com_github_jacobbrewer1_web//health",
+        "@com_github_jacobbrewer1_web//logging",
+        "@com_github_nats_io_nats_go//:nats_go",
+        "@com_github_nats_io_nats_go//jetstream",
+    ],
+)
+
+go_binary(
+    name = "processor",
+    embed = [":processor_lib"],
+    visibility = ["//visibility:public"],
+)

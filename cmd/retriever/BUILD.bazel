@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "retriever_lib",
+    srcs = [
+        "clubs_retriever.go",
+        "consts.go",
+        "courses_retriever.go",
+        "details_retriever.go",
+        "england_golf_entities.go",
+        "main.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/cmd/retriever",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//cmd/retriever/runnables",
+        "//pkg/logging",
+        "//pkg/models",
+        "//pkg/repositories/retriever",
+        "@com_github_hashicorp_go_retryablehttp//:go-retryablehttp",
+        "@com_github_jacobbrewer1_web//:web",
+        "@com_github_jacobbrewer1_web//health",
+        "@com_github_jacobbrewer1_web//logging",
+        "@com_github_jacobbrewer1_workerpool//:workerpool",
+        "@com_github_nats_io_nats_go//:nats_go",
+        "@com_github_nats_io_nats_go//jetstream",
+        "@org_golang_x_crypto_x509roots_fallback//:fallback",
+    ],
+)
+
+go_binary(
+    name = "retriever",
+    embed = [":retriever_lib"],
+    visibility = ["//visibility:public"],
+)

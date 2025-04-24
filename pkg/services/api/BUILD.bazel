@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "api",
+    srcs = [
+        "clubs.go",
+        "courses.go",
+        "holes.go",
+        "markers.go",
+        "service.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/pkg/services/api",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/apis/specs/api",
+        "//pkg/services/api/domain",
+        "@com_github_jacobbrewer1_pagefilter//:pagefilter",
+        "@com_github_jacobbrewer1_uhttp//:uhttp",
+    ],
+)

@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "models",
+    srcs = [
+        "club.xo.go",
+        "course.xo.go",
+        "course_details.xo.go",
+        "db.xo.go",
+        "errors.xo.go",
+        "gen.go",
+        "helpers.xo.go",
+        "hole.xo.go",
+        "metrics.xo.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/pkg/models",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_jacobbrewer1_patcher//:patcher",
+        "@com_github_jacobbrewer1_patcher//inserter",
+        "@com_github_jmoiron_sqlx//:sqlx",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
+    ],
+)

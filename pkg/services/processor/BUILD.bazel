@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "processor",
+    srcs = [
+        "clubs.go",
+        "courses.go",
+        "details.go",
+        "holes.go",
+        "service.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/pkg/services/processor",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/models",
+        "//pkg/services/processor/domain",
+        "@com_github_jacobbrewer1_web//logging",
+        "@com_github_nats_io_nats_go//jetstream",
+    ],
+)
