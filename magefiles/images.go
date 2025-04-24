@@ -124,7 +124,10 @@ func (i Image) buildImage(appName string) error {
 		tags = append(tags, commitTag)
 	}
 
-	bazelLocation := binaryLocationFromBazel(appName)
+	bazelLocation, err := binaryLocationFromBazel(appName)
+	if err != nil {
+		return fmt.Errorf("failed to get binary location from bazel: %w", err)
+	}
 
 	cmd := exec.Command("docker", "build")
 
