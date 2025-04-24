@@ -4,8 +4,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/jacobbrewer1/golf-data/pkg/services/processor/domain"
 	"github.com/nats-io/nats.go/jetstream"
+
+	"github.com/jacobbrewer1/golf-data/pkg/services/processor/domain"
 )
 
 type Processor interface {

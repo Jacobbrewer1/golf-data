@@ -1,7 +1,7 @@
 package domain
 
 import (
-	api "github.com/jacobbrewer1/golf-data/pkg/apis/specs/api"
+	"github.com/jacobbrewer1/golf-data/pkg/apis/specs/api"
 	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/api"
 	"github.com/jacobbrewer1/pagefilter"
 )
