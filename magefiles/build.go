@@ -46,3 +46,15 @@ func buildWithBazel(target string) error {
 
 	return nil
 }
+
+func FindBinary(target string) error {
+	got, err := binaryLocationFromBazel(target)
+	if err != nil {
+		return err
+	} else if got == "" {
+		return fmt.Errorf("no binary found for target %s", target)
+	}
+
+	fmt.Println("Binary location:", got)
+	return nil
+}

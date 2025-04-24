@@ -84,9 +84,10 @@ var GCPServiceAccountJsonLocation = sync.OnceValue(func() string {
 })
 
 func binaryLocationFromBazel(target string) (string, error) {
-	args := []string{"cquery", "//cmd/" + target}
-	if err := sh.Run("bazel", args...); err != nil {
+	args := []string{"cquery", "//cmd/" + target, "--output=files"}
+	output, err := sh.Output("bazel", args...)
+	if err != nil {
 		return "", err
 	}
-	return "", nil
+	return output, nil
 }

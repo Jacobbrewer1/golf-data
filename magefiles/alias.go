@@ -3,6 +3,7 @@
 package main
 
 var Aliases = map[string]interface{}{
-	"fixit": VendorDeps,
-	"deps":  InstallDeps,
+	"fixit":  VendorDeps,
+	"deps":   InstallDeps,
+	"binary": FindBinary,
 }
