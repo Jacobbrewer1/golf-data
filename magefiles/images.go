@@ -124,6 +124,8 @@ func (i Image) buildImage(appName string) error {
 		tags = append(tags, commitTag)
 	}
 
+	bazelLocation := binaryLocationFromBazel(appName)
+
 	cmd := exec.Command("docker", "build")
 
 	for _, tag := range tags {
@@ -131,7 +133,7 @@ func (i Image) buildImage(appName string) error {
 	}
 
 	cmd.Args = append(cmd.Args, ".")
-	cmd.Args = append(cmd.Args, "--build-arg", "APP_NAME="+appName)
+	cmd.Args = append(cmd.Args, "--build-arg", "BINARY_LOCATION="+bazelLocation)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

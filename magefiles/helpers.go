@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/magefile/mage/sh"
 )
 
 const (
@@ -80,3 +82,11 @@ var GCPServiceAccountJsonLocation = sync.OnceValue(func() string {
 	}
 	return location
 })
+
+func binaryLocationFromBazel(target string) (string, error) {
+	args := []string{"cquery", "//cmd/" + target}
+	if err := sh.Run("bazel", args...); err != nil {
+		return "", err
+	}
+	return "", nil
+}
