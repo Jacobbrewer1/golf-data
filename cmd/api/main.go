@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+
 	"github.com/jacobbrewer1/golf-data/pkg/apis/specs/api"
 	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/api"
 	apiSvc "github.com/jacobbrewer1/golf-data/pkg/services/api"

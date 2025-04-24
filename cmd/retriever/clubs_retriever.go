@@ -13,12 +13,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/nats-io/nats.go/jetstream"
+
 	"github.com/jacobbrewer1/golf-data/cmd/retriever/runnables"
 	logKeys "github.com/jacobbrewer1/golf-data/pkg/logging"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/jacobbrewer1/workerpool"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 func (a *App) clubsTask(l *slog.Logger) web.AsyncTaskFunc {
