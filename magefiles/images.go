@@ -5,7 +5,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
@@ -129,18 +128,16 @@ func (i Image) buildImage(appName string) error {
 		return fmt.Errorf("failed to get binary location from bazel: %w", err)
 	}
 
-	cmd := exec.Command("docker", "build")
+	args := []string{"build"}
 
 	for _, tag := range tags {
-		cmd.Args = append(cmd.Args, "-t", tag)
+		args = append(args, "-t", tag)
 	}
 
-	cmd.Args = append(cmd.Args, ".")
-	cmd.Args = append(cmd.Args, "--build-arg", "BINARY_LOCATION="+bazelLocation)
+	args = append(args, ".")
+	args = append(args, "--build-arg", "BINARY_LOCATION="+bazelLocation)
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := sh.Run("docker", args...); err != nil {
 		return fmt.Errorf("failed to build image: %w", err)
 	}
 
