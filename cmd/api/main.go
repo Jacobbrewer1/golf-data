@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
 
 	"github.com/jacobbrewer1/golf-data/pkg/apis/specs/api"
 	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/api"
@@ -18,7 +17,6 @@ import (
 	"github.com/jacobbrewer1/golf-data/pkg/services/api/domain"
 	"github.com/jacobbrewer1/uhttp"
 	"github.com/jacobbrewer1/utils"
-	"github.com/jacobbrewer1/vaulty"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
@@ -33,24 +31,6 @@ func main() {
 		logging.WithDefaultLogger(),
 		logging.WithAppName(appName),
 	)
-
-	web.VaultClient = func(ctx context.Context, l *slog.Logger, v *viper.Viper) (vaulty.Client, error) {
-		addr := v.GetString("vault.address")
-
-		vc, err := vaulty.NewClient(
-			vaulty.WithContext(ctx),
-			vaulty.WithAddr(addr),
-			vaulty.WithGeneratedVaultClient(addr),
-			vaulty.WithTokenAuth(v.GetString("vault.token")),
-			vaulty.WithKvv2Mount(v.GetString("vault.kvv2_mount")),
-			vaulty.WithLogger(l),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error creating vault client: %w", err)
-		}
-
-		return vc, nil
-	}
 
 	a, err := web.NewApp(l)
 	if err != nil {
