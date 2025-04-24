@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/nats-io/nats.go/jetstream"
+
 	"github.com/jacobbrewer1/golf-data/pkg/models"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 func (p *processor) Courses(ctx context.Context) {

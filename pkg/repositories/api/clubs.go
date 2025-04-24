@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/jacobbrewer1/golf-data/pkg/models"
 	"github.com/jacobbrewer1/golf-data/pkg/repositories/api/filters"
 	"github.com/jacobbrewer1/pagefilter"
@@ -16,6 +18,9 @@ var (
 )
 
 func (r *repository) GetClubs(details *pagefilter.PaginatorDetails, filter *GetClubsFilters) (*pagefilter.PaginatedResponse[models.Club], error) {
+	t := prometheus.NewTimer(models.DatabaseLatency.WithLabelValues("get_clubs"))
+	defer t.ObserveDuration()
+
 	mf := r.getClubFilters(filter)
 	pg := pagefilter.NewPaginator(r.db, models.ClubTableName, "id", mf)
 

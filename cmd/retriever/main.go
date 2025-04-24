@@ -6,13 +6,14 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
+	_ "golang.org/x/crypto/x509roots/fallback"
+
 	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/retriever"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
-	_ "golang.org/x/crypto/x509roots/fallback"
 )
 
 const (

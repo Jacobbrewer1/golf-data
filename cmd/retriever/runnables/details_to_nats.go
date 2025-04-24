@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"log/slog"
 
+	"github.com/nats-io/nats.go/jetstream"
+
 	logKeys "github.com/jacobbrewer1/golf-data/pkg/logging"
 	"github.com/jacobbrewer1/golf-data/pkg/models"
 	"github.com/jacobbrewer1/web/logging"
 	"github.com/jacobbrewer1/workerpool"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 type publishDetailsToNats struct {

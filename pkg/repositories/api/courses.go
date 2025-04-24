@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/jacobbrewer1/golf-data/pkg/models"
 	"github.com/jacobbrewer1/golf-data/pkg/repositories/api/filters"
 	"github.com/jacobbrewer1/pagefilter"
@@ -16,6 +18,9 @@ var (
 )
 
 func (r *repository) GetCourses(details *pagefilter.PaginatorDetails, filter *GetCoursesFilters) (*pagefilter.PaginatedResponse[models.Course], error) {
+	t := prometheus.NewTimer(models.DatabaseLatency.WithLabelValues("get_courses"))
+	defer t.ObserveDuration()
+
 	mf := r.getCoursesFilter(filter)
 	pg := pagefilter.NewPaginator(r.db, models.CourseTableName, "id", mf)
 

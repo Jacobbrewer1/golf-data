@@ -6,14 +6,15 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
+
 	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/processor"
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor"
 	"github.com/jacobbrewer1/golf-data/pkg/services/processor/domain"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 const (
