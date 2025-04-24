@@ -96,6 +96,28 @@ jobs:
         uses: magefile/mage-action@v3
         with:
           version: latest
+          args: deps
+
+      - name: Import secrets
+        id: import-secrets
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: userpass
+          username: ${{ secrets.VAULT_USERNAME }}
+          password: ${{ secrets.VAULT_PASSWORD }}
+          secrets: |
+            ${{ secrets.VAULT_MOUNT }}/data/${{ secrets.VAULT_GCP_SA_NAME }} ${{ secrets.VAULT_GCP_SA_KEY }} | VAULT_GCP_SA_KEY ;
+
+      - name: Service Account File
+        id: service-account-file
+        run: |
+          echo '${{ steps.import-secrets.outputs.VAULT_GCP_SA_KEY }}' > ${{ github.workspace }}/gcp-sa-key.json
+
+      - name: Run Mage
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
           args: -v ${{ env.MAGE_COMMAND }}
         env:
           DOCKER_REGISTRY: ${{ env.REGISTRY }}/${{ env.LOWER_IMAGE_NAME }}
