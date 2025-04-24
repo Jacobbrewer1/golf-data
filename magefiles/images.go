@@ -47,6 +47,7 @@ type Image mg.Namespace
 
 // A build step that requires additional params, or platform specific steps for example
 func (i Image) All() error {
+	mg.Deps(InstallDeps)
 	buildWithBazel("...")
 
 	wg := new(sync.WaitGroup)
@@ -85,6 +86,7 @@ func (i Image) All() error {
 }
 
 func (i Image) One(appName string) error {
+	mg.Deps(InstallDeps)
 	buildWithBazel("cmd/" + appName)
 	return i.handleOne(appName)
 }
