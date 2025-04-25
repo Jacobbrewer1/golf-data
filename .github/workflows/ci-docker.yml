@@ -92,12 +92,6 @@ jobs:
             echo "MAGE_COMMAND=image:all" >> $GITHUB_ENV
           fi
 
-      - name: Run Mage
-        uses: magefile/mage-action@v3
-        with:
-          version: latest
-          args: deps
-
       - name: Import secrets
         id: import-secrets
         uses: hashicorp/vault-action@v3

@@ -108,8 +108,19 @@ func (i Image) handleOne(appName string) error {
 
 func moveBinary(appName string) error {
 	// Move the binary to the correct location
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+	fmt.Println("Current directory: ", currentDir)
+
+	// Make the bin directory if it doesn't exist
+	if err := os.MkdirAll(currentDir+"/bin", os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create bin directory: %w", err)
+	}
+
 	binaryPath := fmt.Sprintf("bazel-bin/cmd/%s/%s_/%s", appName, appName, appName)
-	if err := sh.Run("cp", binaryPath, "./"+appName); err != nil {
+	if err := sh.Run("cp", binaryPath, currentDir+"/bin/"+appName); err != nil {
 		return fmt.Errorf("failed to copy binary: %w", err)
 	}
 	return nil
