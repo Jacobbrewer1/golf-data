@@ -1,4 +1,4 @@
-ARG APP_NAME=app
+ARG APP_NAME="app"
 
 FROM docker.io/ubuntu:latest
 

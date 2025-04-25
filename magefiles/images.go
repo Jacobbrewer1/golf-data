@@ -119,8 +119,12 @@ func moveBinary(appName string) error {
 		return fmt.Errorf("failed to create bin directory: %w", err)
 	}
 
-	binaryPath := fmt.Sprintf("bazel-bin/cmd/%s/%s_/%s", appName, appName, appName)
-	if err := sh.Run("cp", binaryPath, currentDir+"/bin/"+appName); err != nil {
+	bazelLocation, err := binaryLocationFromBazel(appName)
+	if err != nil {
+		return fmt.Errorf("failed to get binary location from bazel: %w", err)
+	}
+
+	if err := sh.Run("cp", bazelLocation, currentDir+"/bin/"+appName); err != nil {
 		return fmt.Errorf("failed to copy binary: %w", err)
 	}
 	return nil
