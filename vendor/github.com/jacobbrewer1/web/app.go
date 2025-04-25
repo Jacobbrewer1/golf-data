@@ -12,14 +12,6 @@ import (
 
 	"github.com/caarlos0/env/v10"
 	"github.com/gorilla/mux"
-	"github.com/jacobbrewer1/goredis"
-	"github.com/jacobbrewer1/uhttp"
-	"github.com/jacobbrewer1/vaulty"
-	"github.com/jacobbrewer1/vaulty/vsql"
-	"github.com/jacobbrewer1/web/cache"
-	"github.com/jacobbrewer1/web/logging"
-	"github.com/jacobbrewer1/web/version"
-	"github.com/jacobbrewer1/workerpool"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -29,15 +21,29 @@ import (
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	kubeCache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/leaderelection"
+
+	"github.com/jacobbrewer1/goredis"
+	"github.com/jacobbrewer1/uhttp"
+	"github.com/jacobbrewer1/vaulty"
+	"github.com/jacobbrewer1/vaulty/vsql"
+	"github.com/jacobbrewer1/web/cache"
+	"github.com/jacobbrewer1/web/logging"
+	"github.com/jacobbrewer1/web/version"
+	"github.com/jacobbrewer1/workerpool"
 )
 
 const (
-	MetricsPort = 9090
-	HealthPort  = 9091
+	// metricsPort is the port for the metrics server.
+	metricsPort = 9090
+
+	// healthPort is the port for the health server.
+	healthPort = 9091
 
 	// httpReadHeaderTimeout is the amount of time allowed to read request headers.
 	httpReadHeaderTimeout = 10 * time.Second
-	shutdownTimeout       = 15 * time.Second
+
+	// shutdownTimeout is the amount of time allowed for graceful shutdown.
+	shutdownTimeout = 15 * time.Second
 )
 
 var (
@@ -48,6 +54,7 @@ var (
 type (
 	// AppConfig is the configuration for the application.
 	AppConfig struct {
+		// ConfigLocation is the location of the configuration file.
 		ConfigLocation string `env:"CONFIG_LOCATION" envDefault:"config.json"`
 	}
 
@@ -65,7 +72,7 @@ type (
 		// baseCfg is the base configuration for the application.
 		baseCfg *AppConfig
 
-		// isStarted a channel that is closed when the application is started.
+		// isStartedChan a channel that is closed when the application is started.
 		isStartedChan chan struct{}
 
 		// startOnce is used to ensure that the start function is only called once.
@@ -134,10 +141,10 @@ type (
 		// natsClient is the nats client for the application.
 		natsClient *nats.Conn
 
-		// natsJetStream is the nats jetstream for the application.
+		// natsJetStream is the nats JetStream for the application.
 		natsJetStream jetstream.JetStream
 
-		// natStream is the nats stream for the application.
+		// natsStream is the nats stream for the application.
 		natsStream jetstream.Stream
 	}
 )
@@ -180,7 +187,7 @@ func (a *App) Start(opts ...StartOption) error {
 		a.l.Info("starting application",
 			slog.String(logging.KeyGitCommit, version.GitCommit()),
 			slog.String(logging.KeyRuntime, fmt.Sprintf("%s %s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH)),
-			slog.String(logging.KeyBuildDate, version.CommitTimestamp().String()),
+			slog.String(logging.KeyCommitTimestamp, version.CommitTimestamp().String()),
 		)
 
 		for _, opt := range opts {
@@ -194,7 +201,7 @@ func (a *App) Start(opts ...StartOption) error {
 			metricsRouter := mux.NewRouter()
 			metricsRouter.Handle("/metrics", promhttp.Handler())
 			a.servers.Store("metrics", &http.Server{
-				Addr:              fmt.Sprintf(":%d", MetricsPort),
+				Addr:              fmt.Sprintf(":%d", metricsPort),
 				Handler:           metricsRouter,
 				ReadHeaderTimeout: httpReadHeaderTimeout,
 			})

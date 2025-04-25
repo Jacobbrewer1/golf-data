@@ -10,14 +10,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gomodule/redigo/redis"
-	"github.com/jacobbrewer1/goredis"
-	"github.com/jacobbrewer1/vaulty"
-	"github.com/jacobbrewer1/vaulty/vsql"
-	"github.com/jacobbrewer1/web/cache"
-	"github.com/jacobbrewer1/web/health"
-	"github.com/jacobbrewer1/web/k8s"
-	"github.com/jacobbrewer1/web/logging"
-	"github.com/jacobbrewer1/workerpool"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/spf13/viper"
@@ -28,6 +20,15 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
+
+	"github.com/jacobbrewer1/goredis"
+	"github.com/jacobbrewer1/vaulty"
+	"github.com/jacobbrewer1/vaulty/vsql"
+	"github.com/jacobbrewer1/web/cache"
+	"github.com/jacobbrewer1/web/health"
+	"github.com/jacobbrewer1/web/k8s"
+	"github.com/jacobbrewer1/web/logging"
+	"github.com/jacobbrewer1/workerpool"
 )
 
 const (
@@ -229,7 +230,7 @@ func WithHealthCheck(checks ...*health.Check) StartOption {
 		}
 
 		a.servers.Store("health", &http.Server{
-			Addr:              fmt.Sprintf(":%d", HealthPort),
+			Addr:              fmt.Sprintf(":%d", healthPort),
 			Handler:           checker.Handler(),
 			ReadHeaderTimeout: httpReadHeaderTimeout,
 		})

@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/spf13/viper"
+
 	"github.com/jacobbrewer1/vaulty"
 	"github.com/jacobbrewer1/web/k8s"
-	"github.com/spf13/viper"
 )
 
 const (

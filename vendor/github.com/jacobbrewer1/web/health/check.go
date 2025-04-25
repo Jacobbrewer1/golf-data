@@ -9,6 +9,9 @@ import (
 // CheckFunc is a function that performs the check.
 type CheckFunc = func(ctx context.Context) error
 
+// StatusListenerFunc is a function that is called when the status of the check changes.
+type StatusListenerFunc = func(ctx context.Context, name string, state *State)
+
 // Check is a struct that represents a health check.
 type Check struct {
 	// name is the name of the check.
@@ -24,10 +27,10 @@ type Check struct {
 	errorGracePeriod time.Duration
 
 	// maxContiguousFails is the maximum number of contiguous fails.
-	maxContiguousFails uint
+	maxContiguousFails uint32
 
 	// statusListener is the function that will be called when the status changes.
-	statusListener func(ctx context.Context, name string, state State)
+	statusListener StatusListenerFunc
 
 	// state is the state of the check.
 	state *State
@@ -43,7 +46,7 @@ func NewCheck(name string, checkerFunc CheckFunc, options ...CheckOption) *Check
 		name:    name,
 		check:   checkerFunc,
 		timeout: 5 * time.Second,
-		state:   &State{status: StatusUnknown},
+		state:   NewState(),
 	}
 
 	for _, option := range options {
@@ -82,14 +85,14 @@ func (c *Check) Check(ctx context.Context) error {
 	defer func() {
 		if c.statusListener != nil && c.state.status != newStatus {
 			c.state.status = newStatus // Set the new status before calling the listener
-			c.statusListener(checkCtx, c.name, *c.state)
+			c.statusListener(checkCtx, c.name, c.state)
 		} else {
 			c.state.status = newStatus
 		}
 	}()
 
 	if err := c.check(checkCtx); err != nil {
-		c.state.contiguousFails++
+		c.state.contiguousFails.Add(1)
 		c.state.checkErr = err
 		c.state.lastFail = now
 
@@ -101,7 +104,7 @@ func (c *Check) Check(ctx context.Context) error {
 		newStatus = StatusDown
 		if c.errorGracePeriod > 0 && now.Sub(c.state.firstFailInCycle) <= c.errorGracePeriod {
 			newStatus = StatusUp // Still within grace period
-		} else if c.maxContiguousFails > 0 && c.state.contiguousFails < c.maxContiguousFails {
+		} else if c.maxContiguousFails > 0 && c.state.contiguousFails.Load() < c.maxContiguousFails {
 			newStatus = StatusUp // Still within fail threshold
 		}
 
@@ -119,7 +122,7 @@ func (c *Check) Check(ctx context.Context) error {
 
 	newStatus = StatusUp
 	c.state.lastSuccess = now
-	c.state.contiguousFails = 0
+	c.state.contiguousFails.Store(0)
 	c.state.checkErr = nil
 	c.state.firstFailInCycle = time.Time{}
 

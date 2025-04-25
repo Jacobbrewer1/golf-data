@@ -86,7 +86,7 @@ func (s Status) MarshalJSON() ([]byte, error) {
 //		health.WithCheckOnStatusChange(health.StandardStatusListener(logging.LoggerWithComponent(l, "health-check"))),
 //	)
 func StandardStatusListener(l *slog.Logger) StatusListenerFunc {
-	return func(ctx context.Context, name string, state State) {
+	return func(ctx context.Context, name string, state *State) {
 		l.Info("health check status changed",
 			slog.String(logging.KeyName, name),
 			slog.String(logging.KeyState, state.Status().String()),

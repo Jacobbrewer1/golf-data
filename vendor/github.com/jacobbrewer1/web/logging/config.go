@@ -6,6 +6,10 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
+const (
+	bazelGazellePrefix = "gazelle~~go_deps~"
+)
+
 type loggingConfig struct {
 	Level slog.Level `env:"LOG_LEVEL" envDefault:"debug"`
 }

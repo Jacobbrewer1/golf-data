@@ -6,12 +6,14 @@ import (
 
 // Set represents a mathematical set: https://en.wikipedia.org/wiki/Set_(mathematics)#
 type Set[T comparable] struct {
-	mut   sync.Mutex
+	mut   *sync.RWMutex
 	items map[T]bool
 }
 
+// NewSet creates a new set with the provided items.
 func NewSet[T comparable](items ...T) *Set[T] {
 	set := &Set[T]{
+		mut:   new(sync.RWMutex),
 		items: make(map[T]bool),
 	}
 
@@ -38,8 +40,8 @@ func (s *Set[T]) Remove(item T) {
 
 // Contains returns whether the set contains item.
 func (s *Set[T]) Contains(item T) bool {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 	_, ok := s.items[item]
 	return ok
 }
@@ -47,10 +49,10 @@ func (s *Set[T]) Contains(item T) bool {
 // Difference returns the set of all things that belong to A, but not B.
 func (s *Set[T]) Difference(b *Set[T]) *Set[T] {
 	s3 := NewSet[T]()
-	s.mut.Lock()
-	b.mut.Lock()
-	defer b.mut.Unlock()
-	defer s.mut.Unlock()
+	s.mut.RLock()
+	b.mut.RLock()
+	defer b.mut.RUnlock()
+	defer s.mut.RUnlock()
 
 	for k := range s.items {
 		if !b.items[k] {
@@ -64,10 +66,10 @@ func (s *Set[T]) Difference(b *Set[T]) *Set[T] {
 // Union returns the set of all things that belong in A, in B or in both.
 func (s *Set[T]) Union(b *Set[T]) *Set[T] {
 	s3 := NewSet[T]()
-	s.mut.Lock()
-	b.mut.Lock()
-	defer b.mut.Unlock()
-	defer s.mut.Unlock()
+	s.mut.RLock()
+	b.mut.RLock()
+	defer b.mut.RUnlock()
+	defer s.mut.RUnlock()
 
 	for k := range s.items {
 		s3.Add(k)
@@ -82,8 +84,8 @@ func (s *Set[T]) Union(b *Set[T]) *Set[T] {
 
 // Each calls fn on each item of the set.
 func (s *Set[T]) Each(fn func(item T)) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 
 	for k := range s.items {
 		fn(k)
@@ -92,8 +94,8 @@ func (s *Set[T]) Each(fn func(item T)) {
 
 // Items returns the items in the set as a slice.
 func (s *Set[T]) Items() []T {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 
 	keys := make([]T, 0, len(s.items))
 	for k := range s.items {

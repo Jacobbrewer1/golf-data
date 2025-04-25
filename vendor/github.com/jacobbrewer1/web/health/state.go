@@ -1,6 +1,9 @@
 package health
 
-import "time"
+import (
+	"sync/atomic"
+	"time"
+)
 
 // State is the state of the health check.
 type State struct {
@@ -17,13 +20,19 @@ type State struct {
 	firstFailInCycle time.Time
 
 	// contiguousFails is the number of contiguous failures.
-	contiguousFails uint
+	contiguousFails atomic.Uint32
 
 	// checkErr is the last error returned by the check.
 	checkErr error
 
 	// status is the current status of the check.
 	status Status
+}
+
+func NewState() *State {
+	return &State{
+		status: StatusUnknown,
+	}
 }
 
 // CheckErr is the last error returned by the check.
@@ -36,8 +45,8 @@ func (s *State) CheckErr() error {
 // ContiguousFails is the number of contiguous failures.
 //
 // Note: This is cleared when the check is successful.
-func (s *State) ContiguousFails() uint {
-	return s.contiguousFails
+func (s *State) ContiguousFails() uint32 {
+	return s.contiguousFails.Load()
 }
 
 // LastFail is the last time the check failed.
