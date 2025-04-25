@@ -41,7 +41,7 @@ func InstallDeps() error {
 	}
 
 	if err := sh.Run("go", "install", "github.com/bazelbuild/bazelisk@latest"); err != nil {
-		return fmt.Errorf("failed to install goimports: %w", err)
+		return fmt.Errorf("failed to install bazelisk: %w", err)
 	}
 
 	return nil
