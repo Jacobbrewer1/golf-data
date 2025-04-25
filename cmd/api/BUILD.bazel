@@ -13,11 +13,9 @@ go_library(
         "@com_github_gorilla_mux//:mux",
         "@com_github_jacobbrewer1_uhttp//:uhttp",
         "@com_github_jacobbrewer1_utils//:utils",
-        "@com_github_jacobbrewer1_vaulty//:vaulty",
         "@com_github_jacobbrewer1_web//:web",
         "@com_github_jacobbrewer1_web//health",
         "@com_github_jacobbrewer1_web//logging",
-        "@com_github_spf13_viper//:viper",
     ],
 )
 

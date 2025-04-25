@@ -92,6 +92,8 @@ func (i Image) One(appName string) error {
 
 // handleOne handles the building and pushing of a single image.
 func (i Image) handleOne(appName string) error {
+	moveBinary(appName)
+
 	if err := i.buildImage(appName); err != nil {
 		return fmt.Errorf("failed to build image for %s: %w", appName, err)
 	}
@@ -100,6 +102,15 @@ func (i Image) handleOne(appName string) error {
 		if err := i.pushImage(appName); err != nil {
 			return fmt.Errorf("failed to push image for %s: %w", appName, err)
 		}
+	}
+	return nil
+}
+
+func moveBinary(appName string) error {
+	// Move the binary to the correct location
+	binaryPath := fmt.Sprintf("bazel-bin/cmd/%s/%s_/%s", appName, appName, appName)
+	if err := os.Rename(binaryPath, "./bin"+appName); err != nil {
+		return fmt.Errorf("failed to move binary: %w", err)
 	}
 	return nil
 }
