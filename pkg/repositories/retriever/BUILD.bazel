@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "retriever",
+    srcs = [
+        "clubs.go",
+        "courses.go",
+        "gen.go",
+        "interface.go",
+        "mock_Repository.go",
+        "repository.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/pkg/repositories/retriever",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/models",
+        "@com_github_jacobbrewer1_vaulty//vsql",
+        "@com_github_stretchr_testify//mock",
+    ],
+)

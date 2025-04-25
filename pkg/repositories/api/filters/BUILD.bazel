@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "filters",
+    srcs = [
+        "club_name_like.go",
+        "course_club_id.go",
+        "hole_marker_id.go",
+        "marker_course_id.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/pkg/repositories/api/filters",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_jacobbrewer1_pagefilter//:pagefilter"],
+)

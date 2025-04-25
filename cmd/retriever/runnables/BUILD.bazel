@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "runnables",
+    srcs = [
+        "club_to_nats.go",
+        "course_to_nats.go",
+        "details_to_nats.go",
+        "holes_to_nats.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/cmd/retriever/runnables",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/logging",
+        "//pkg/models",
+        "@com_github_jacobbrewer1_web//logging",
+        "@com_github_jacobbrewer1_workerpool//:workerpool",
+        "@com_github_nats_io_nats_go//jetstream",
+    ],
+)

@@ -62,14 +62,46 @@ jobs:
           go-version-file: 'go.mod'
           cache-dependency-path: "**/*.sum"
 
-      - name: Build
-        run: go build -v ./...
-
       - name: Verify
         run: go vet ./...
 
       - name: Test
         run: go test -v ./...
+
+      - name: Run Mage
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
+          args: deps
+
+      - name: Import secrets
+        id: import-secrets
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: userpass
+          username: ${{ secrets.VAULT_USERNAME }}
+          password: ${{ secrets.VAULT_PASSWORD }}
+          secrets: |
+            ${{ secrets.VAULT_MOUNT }}/data/${{ secrets.VAULT_GCP_SA_NAME }} ${{ secrets.VAULT_GCP_SA_KEY }} | VAULT_GCP_SA_KEY ;
+
+      - name: Service Account File
+        id: service-account-file
+        run: |
+          echo '${{ steps.import-secrets.outputs.VAULT_GCP_SA_KEY }}' > ${{ github.workspace }}/gcp-sa-key.json
+
+      - name: Run Mage
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
+          args: -v build:all
+        env:
+          'GOOGLE_APPLICATION_CREDENTIALS_JSON_PATH': ${{ github.workspace }}/gcp-sa-key.json
+
+      - name: Remove Service Account File
+        if: always()
+        run: |
+          rm -f ${{ github.workspace }}/gcp-sa-key.json
 
   code-generation:
     name: "Code Generation"
@@ -134,3 +166,32 @@ jobs:
           file-path: ${{ github.workspace }}/routes-validator-report.md
           pr-number: ${{ github.event.pull_request.number }}
           create-if-not-exists: true
+
+  diff:
+    name: "Diff"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: "**/*.sum"
+
+      - name: Run Mage
+        uses: magefile/mage-action@v3
+        with:
+          version: latest
+          args: fixit
+
+      - name: Check Diff
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "[ERROR] Changes detected:"
+            git status --porcelain
+
+            echo "Make sure to run 'mage fixit' before committing."
+            exit 1
+          fi

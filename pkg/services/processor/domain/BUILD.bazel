@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "domain",
+    srcs = [
+        "clubs.go",
+        "courses.go",
+        "details.go",
+        "domain.go",
+        "gen.go",
+        "holes.go",
+        "mock_Domain.go",
+    ],
+    importpath = "github.com/jacobbrewer1/golf-data/pkg/services/processor/domain",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/models",
+        "//pkg/repositories/processor",
+        "@com_github_stretchr_testify//mock",
+    ],
+)
