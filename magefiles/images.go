@@ -149,7 +149,7 @@ func (i Image) buildImage(appName string) error {
 		tags = append(tags, commitTag)
 	}
 
-	args := []string{"build", "--build-arg", "APP_NAME=" + appName}
+	args := []string{"build", "--build-arg", "APP_NAME=\"" + appName + "\""}
 
 	for _, tag := range tags {
 		args = append(args, "-t", tag)
