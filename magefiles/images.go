@@ -109,8 +109,8 @@ func (i Image) handleOne(appName string) error {
 func moveBinary(appName string) error {
 	// Move the binary to the correct location
 	binaryPath := fmt.Sprintf("bazel-bin/cmd/%s/%s_/%s", appName, appName, appName)
-	if err := os.Rename(binaryPath, "./bin"+appName); err != nil {
-		return fmt.Errorf("failed to move binary: %w", err)
+	if err := sh.Run("cp", binaryPath, "./"+appName); err != nil {
+		return fmt.Errorf("failed to copy binary: %w", err)
 	}
 	return nil
 }
