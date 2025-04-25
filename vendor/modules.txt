@@ -185,7 +185,7 @@ github.com/jacobbrewer1/utils
 ## explicit; go 1.24
 github.com/jacobbrewer1/vaulty
 github.com/jacobbrewer1/vaulty/vsql
-# github.com/jacobbrewer1/web v0.0.6-0.20250422084306-f2722098b5d8
+# github.com/jacobbrewer1/web v0.0.6-0.20250425103546-0d5bc1c6a645
 ## explicit; go 1.24
 github.com/jacobbrewer1/web
 github.com/jacobbrewer1/web/cache

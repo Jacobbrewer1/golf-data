@@ -8,14 +8,17 @@ import (
 )
 
 const (
-	// revisionKey is the key for the revision.
-	revisionKey = "vcs.revision"
+	// vcs is the key for the version control system.
+	vcsKey = "vcs"
 
-	// buildDateKey is the key for the build date.
-	buildDateKey = "vcs.time" // Timestamp of the commit
+	// revisionKey is the key for the revision.
+	revisionKey = vcsKey + ".revision"
+
+	// commitTimestampKey is the key for the commit timestamp.
+	commitTimestampKey = vcsKey + ".time"
 
 	// modifiedKey is the key for the modified flag.
-	modifiedKey = "vcs.modified" // Set to true (as a string) if the binary was built from a working directory containing uncommitted changes.
+	modifiedKey = vcsKey + ".modified" // Set to true (as a string) if the binary was built from a working directory containing uncommitted changes.
 )
 
 // GitCommit returns the git commit hash of the current build.
@@ -35,7 +38,7 @@ var GitCommit = sync.OnceValue(func() string {
 var CommitTimestamp = sync.OnceValue(func() time.Time {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
-			if setting.Key != buildDateKey {
+			if setting.Key != commitTimestampKey {
 				continue
 			}
 

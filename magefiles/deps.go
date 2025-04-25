@@ -14,6 +14,10 @@ func VendorDeps() error {
 		return err
 	}
 
+	if err := sh.Run("go", "mod", "vendor"); err != nil {
+		return err
+	}
+
 	if err := sh.Run("go", "mod", "verify"); err != nil {
 		return err
 	}
@@ -41,7 +45,7 @@ func InstallDeps() error {
 	}
 
 	if err := sh.Run("go", "install", "github.com/bazelbuild/bazelisk@latest"); err != nil {
-		return fmt.Errorf("failed to install goimports: %w", err)
+		return fmt.Errorf("failed to install bazelisk: %w", err)
 	}
 
 	return nil

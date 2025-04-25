@@ -117,7 +117,7 @@ formatters:
     - gofmt
   settings:
     gofmt:
-      simplify: false
+      simplify: true
       rewrite-rules:
         - pattern: interface{}
           replacement: any

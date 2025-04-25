@@ -1,15 +1,11 @@
 package health
 
 import (
-	"context"
 	"time"
 )
 
 // CheckOption is a function that modifies the check configuration.
 type CheckOption = func(*Check)
-
-// StatusListenerFunc is a function that is called when the status of the check changes.
-type StatusListenerFunc = func(ctx context.Context, name string, state State)
 
 // WithCheckTimeout sets the timeout for the check.
 func WithCheckTimeout(timeout time.Duration) CheckOption {
@@ -33,7 +29,7 @@ func WithCheckErrorGracePeriod(errorGracePeriod time.Duration) CheckOption {
 }
 
 // WithCheckMaxFailures sets the maximum number of contiguous fails.
-func WithCheckMaxFailures(maxContiguousFails uint) CheckOption {
+func WithCheckMaxFailures(maxContiguousFails uint32) CheckOption {
 	return func(c *Check) {
 		c.maxContiguousFails = maxContiguousFails
 	}
