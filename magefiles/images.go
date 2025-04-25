@@ -145,14 +145,13 @@ func (i Image) buildImage(appName string) error {
 		tags = append(tags, commitTag)
 	}
 
-	args := []string{"build"}
+	args := []string{"build", "--build-arg", "APP_NAME=" + appName}
 
 	for _, tag := range tags {
 		args = append(args, "-t", tag)
 	}
 
 	args = append(args, ".")
-	args = append(args, "--build-arg", "APP_NAME="+appName)
 
 	if err := sh.Run("docker", args...); err != nil {
 		return fmt.Errorf("failed to build image: %w", err)
