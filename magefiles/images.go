@@ -92,8 +92,6 @@ func (i Image) One(appName string) error {
 
 // handleOne handles the building and pushing of a single image.
 func (i Image) handleOne(appName string) error {
-	moveBinary(appName)
-
 	if err := i.buildImage(appName); err != nil {
 		return fmt.Errorf("failed to build image for %s: %w", appName, err)
 	}
@@ -102,30 +100,6 @@ func (i Image) handleOne(appName string) error {
 		if err := i.pushImage(appName); err != nil {
 			return fmt.Errorf("failed to push image for %s: %w", appName, err)
 		}
-	}
-	return nil
-}
-
-func moveBinary(appName string) error {
-	// Move the binary to the correct location
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
-	}
-	fmt.Println("Current directory: ", currentDir)
-
-	// Make the bin directory if it doesn't exist
-	if err := os.MkdirAll(currentDir+"/bin", os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create bin directory: %w", err)
-	}
-
-	bazelLocation, err := binaryLocationFromBazel(appName)
-	if err != nil {
-		return fmt.Errorf("failed to get binary location from bazel: %w", err)
-	}
-
-	if err := sh.Run("cp", bazelLocation, currentDir+"/bin/"+appName); err != nil {
-		return fmt.Errorf("failed to copy binary: %w", err)
 	}
 	return nil
 }
@@ -149,7 +123,12 @@ func (i Image) buildImage(appName string) error {
 		tags = append(tags, commitTag)
 	}
 
-	args := []string{"build", "--build-arg", "APP_NAME=" + appName}
+	bazelBinaryLocation, err := binaryLocationFromBazel(appName)
+	if err != nil {
+		return fmt.Errorf("failed to get binary location from Bazel: %w", err)
+	}
+
+	args := []string{"build", "--build-arg", "COPY_LOCATION=" + bazelBinaryLocation}
 
 	for _, tag := range tags {
 		args = append(args, "-t", tag)
