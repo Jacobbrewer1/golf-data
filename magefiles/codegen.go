@@ -100,7 +100,7 @@ func (c Codegen) Cicd() error {
 	if got != "" {
 		fmt.Println("[INFO] Found changes:\n")
 		fmt.Println(got)
-		return fmt.Errorf("[INFO] There are uncommitted changes, please run 'mage codegen:generate' and commit the changes")
+		return fmt.Errorf("[ERROR] There are uncommitted changes, please run 'mage codegen:generate' and commit the changes")
 	}
 
 	return nil
