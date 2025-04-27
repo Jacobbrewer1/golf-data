@@ -24,7 +24,7 @@ const (
 	envBazelRemoteCacheBucket        = "BAZEL_REMOTE_CACHE_BUCKET"
 )
 
-var RemoteCacheEnabled = sync.OnceValue(func() bool {
+var IsCIRunner = sync.OnceValue(func() bool {
 	ciRunner, _ := strconv.ParseBool(os.Getenv(envCI))
 	githubRunner, _ := strconv.ParseBool(os.Getenv(envGithubActions))
 	if ciRunner || githubRunner {

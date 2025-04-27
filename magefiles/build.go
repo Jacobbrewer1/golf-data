@@ -33,8 +33,8 @@ func buildWithBazel(target string) error {
 
 	args = append(args, "build", "//"+target)
 
-	if RemoteCacheEnabled() {
-		fmt.Println("Using remote cache")
+	if IsCIRunner() {
+		fmt.Println("[INFO] Using remote cache")
 		cacheBucket := fmt.Sprintf("b3-prod-1-bazel-%s-cache", RepositoryNameOnly())
 		args = append(args, fmt.Sprintf("--remote_cache=%s/%s", gcpStorageHost, cacheBucket))
 		args = append(args, fmt.Sprintf("--google_credentials=%s", GCPServiceAccountJsonLocation()))
@@ -55,6 +55,6 @@ func FindBinary(target string) error {
 		return fmt.Errorf("no binary found for target %s", target)
 	}
 
-	fmt.Println("Binary location:", got)
+	fmt.Println("[DEBUG] Binary location:", got)
 	return nil
 }

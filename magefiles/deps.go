@@ -35,7 +35,7 @@ func VendorDeps() error {
 
 // InstallDeps installs the required dependencies for the project.
 func InstallDeps() error {
-	fmt.Println("Installing Deps...")
+	fmt.Println("[DEBUG] Installing Deps...")
 	if err := sh.Run("go", "install", "github.com/jacobbrewer1/goschema@latest"); err != nil {
 		return fmt.Errorf("failed to install goschema: %w", err)
 	}

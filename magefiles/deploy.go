@@ -7,9 +7,10 @@ import (
 	"os"
 	"sync"
 
-	"github.com/jacobbrewer1/utils"
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
+
+	"github.com/jacobbrewer1/utils"
 )
 
 type Deploy mg.Namespace
@@ -41,6 +42,7 @@ func (d Deploy) All(environment string) error {
 	wg.Wait()
 
 	if multiErr.Err() != nil {
+		fmt.Println("[ERROR] Failed to deploy the apps with the following errors:")
 		for _, err := range multiErr.Errors() {
 			fmt.Println(err)
 		}
@@ -67,7 +69,7 @@ func (d Deploy) One(appName, environment string) error {
 		return fmt.Errorf("failed to get tag from commit: %w", err)
 	}
 
-	fmt.Println("Deploying", appName, "with tag", tag)
+	fmt.Println("[INFO] Deploying", appName, "with tag", tag)
 
 	args = append(args, "image.tag="+tag)
 

@@ -68,7 +68,7 @@ type Lint mg.Namespace
 
 // Apis lints the API spec.
 func (l Lint) Apis() error {
-	fmt.Println("Linting API spec...")
+	fmt.Println("[INFO] Linting API spec...")
 
 	if err := l.installOpenApiLint(); err != nil {
 		return fmt.Errorf("failed to install openapi-lint: %w", err)
@@ -96,8 +96,6 @@ func (l Lint) Apis() error {
 			return fmt.Errorf("failed to lint API spec: %w", err)
 		}
 
-		fmt.Println(string(got))
-
 		resp := new(apiLintResponse)
 		if err := json.Unmarshal([]byte(got), resp); err != nil {
 			return fmt.Errorf("failed to unmarshal response: %w", err)
@@ -110,7 +108,7 @@ func (l Lint) Apis() error {
 			resp.ImpactScore.CategorizedSummary.Evolution < 100 {
 			failed = true
 			failedSpecs = append(failedSpecs, spec)
-			fmt.Println("API spec linting failed for", spec)
+			fmt.Println("[ERROR] API spec linting failed for", spec)
 
 			if err := os.Rename("./routes-validator-report.md", "./routes-validator-report-"+spec+".md"); err != nil {
 				return fmt.Errorf("failed to rename report file: %w", err)
@@ -118,14 +116,21 @@ func (l Lint) Apis() error {
 			continue
 		}
 
-		fmt.Println("Usability:", resp.ImpactScore.CategorizedSummary.Usability)
-		fmt.Println("Security:", resp.ImpactScore.CategorizedSummary.Security)
-		fmt.Println("Robustness:", resp.ImpactScore.CategorizedSummary.Robustness)
-		fmt.Println("Evolution:", resp.ImpactScore.CategorizedSummary.Evolution)
-		fmt.Println("Overall:", resp.ImpactScore.CategorizedSummary.Overall)
+		fmt.Println(`[INFO] API spec linting results:
+Usability: %s
+Security: %s
+Robustness: %s
+Evolution: %s
+Overall: %s`,
+			resp.ImpactScore.CategorizedSummary.Usability,
+			resp.ImpactScore.CategorizedSummary.Security,
+			resp.ImpactScore.CategorizedSummary.Robustness,
+			resp.ImpactScore.CategorizedSummary.Evolution,
+			resp.ImpactScore.CategorizedSummary.Overall,
+		)
 
-		fmt.Println("API spec linting passed for", spec)
-		fmt.Println("Removing report file...")
+		fmt.Println("[INFO] API spec linting passed for", spec)
+		fmt.Println("[DEBUG] Removing report file...")
 		if err := os.Remove("./routes-validator-report.md"); err != nil {
 			return fmt.Errorf("failed to remove report file: %w", err)
 		}
@@ -133,7 +138,7 @@ func (l Lint) Apis() error {
 
 	if failed {
 		// Combine all reports into a single file
-		fmt.Println("Combining reports...")
+		fmt.Println("[DEBUG] Combining reports...")
 		if _, err := os.Create("./routes-validator-report.md"); err != nil {
 			return fmt.Errorf("failed to create report file: %w", err)
 		}
@@ -165,13 +170,13 @@ func (l Lint) Apis() error {
 		return fmt.Errorf("API spec linting failed")
 	}
 
-	fmt.Println("API spec linting passed")
+	fmt.Println("[INFO] API spec linting passed")
 
 	return nil
 }
 
 func (l Lint) installOpenApiLint() error {
-	fmt.Println("Installing OpenAPI Lint...")
+	fmt.Println("[INFO] Installing OpenAPI Lint...")
 
 	// Is the linter already installed?
 	if _, err := exec.LookPath("lint-openapi"); err == nil {
