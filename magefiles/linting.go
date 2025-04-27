@@ -117,11 +117,11 @@ func (l Lint) Apis() error {
 		}
 
 		fmt.Printf(`[INFO] API spec linting results:
-Usability: %s
-Security: %s
-Robustness: %s
-Evolution: %s
-Overall: %s
+Usability: %d
+Security: %d
+Robustness: %d
+Evolution: %d
+Overall: %d
 `+"\n",
 			resp.ImpactScore.CategorizedSummary.Usability,
 			resp.ImpactScore.CategorizedSummary.Security,
