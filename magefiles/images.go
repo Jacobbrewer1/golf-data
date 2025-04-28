@@ -76,7 +76,7 @@ func (i Image) All() error {
 
 	if multiErr.Err() != nil {
 		for _, err := range multiErr.Errors() {
-			fmt.Println(err)
+			fmt.Println("[ERROR]:", err)
 		}
 		os.Exit(1)
 	}
@@ -112,7 +112,7 @@ func moveBinary(appName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
-	fmt.Println("Current directory: ", currentDir)
+	fmt.Println("[DEBUG] Current directory: ", currentDir)
 
 	// Make the bin directory if it doesn't exist
 	if err := os.MkdirAll(currentDir+"/bin", os.ModePerm); err != nil {
@@ -132,10 +132,10 @@ func moveBinary(appName string) error {
 
 func (i Image) buildImage(appName string) error {
 	applicationDockerRegistry := dockerRegistry() + imageAppSeparator + appName
-	fmt.Println(applicationDockerRegistry)
+	fmt.Println("[DEBUG] Registry:", applicationDockerRegistry)
 
 	tags := i.imageTags(applicationDockerRegistry)
-	fmt.Println(tags)
+	fmt.Println("[DEBUG] Tags:", tags)
 
 	commitTag, err := getTagFromCommit()
 	if err != nil {
@@ -145,7 +145,7 @@ func (i Image) buildImage(appName string) error {
 	commitTag = applicationDockerRegistry + ":" + commitTag
 
 	if !slices.Contains(tags, commitTag) {
-		fmt.Println("Adding commit tag to image tags: ", commitTag)
+		fmt.Println("[DEBUG] Adding commit tag to image tags: ", commitTag)
 		tags = append(tags, commitTag)
 	}
 
@@ -166,10 +166,10 @@ func (i Image) buildImage(appName string) error {
 
 func (i Image) pushImage(appName string) error {
 	applicationDockerRegistry := dockerRegistry() + imageAppSeparator + appName
-	fmt.Println(applicationDockerRegistry)
+	fmt.Println("[DEBUG] Registry:", applicationDockerRegistry)
 
 	tags := i.imageTags(applicationDockerRegistry)
-	fmt.Println(tags)
+	fmt.Println("[DEBUG] Tags:", tags)
 	for _, tag := range tags {
 		if err := sh.Run("docker", "push", tag); err != nil {
 			return fmt.Errorf("failed to push image: %w", err)
@@ -194,7 +194,7 @@ func (i Image) CommitTag() error {
 	if err != nil {
 		return fmt.Errorf("failed to get commit tag: %w", err)
 	}
-	fmt.Println(tag)
+	fmt.Println("[DEBUG] Tag:", tag)
 	return nil
 }
 
