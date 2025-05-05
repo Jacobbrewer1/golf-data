@@ -5,72 +5,106 @@ import (
 	"time"
 )
 
-// State is the state of the health check.
+// State represents the state of a health check.
+//
+// This struct tracks various timestamps, error information, and the current status
+// of a health check. It is designed to provide detailed context about the health
+// check's performance and outcomes.
 type State struct {
-	// lastCheckTime is the last time the check was performed.
+	// lastCheckTime is the timestamp of the most recent health check execution.
 	lastCheckTime time.Time
 
-	// lastSuccess is the last time the check was successful.
+	// lastSuccess is the timestamp of the most recent successful health check.
 	lastSuccess time.Time
 
-	// lastFail is the last time the check failed.
+	// lastFail is the timestamp of the most recent failed health check.
 	lastFail time.Time
 
-	// firstFailInCycle is the first time the check failed in the current cycle.
+	// firstFailInCycle is the timestamp of the first failure in the current failure cycle.
 	firstFailInCycle time.Time
 
-	// contiguousFails is the number of contiguous failures.
+	// contiguousFails is the count of consecutive failed health checks.
 	contiguousFails atomic.Uint32
 
-	// checkErr is the last error returned by the check.
+	// checkErr is the last error encountered during a health check.
 	checkErr error
 
-	// status is the current status of the check.
+	// status represents the current health status of the check.
 	status Status
 }
 
+// NewState creates and initializes a new State instance.
+//
+// This function returns a pointer to a State struct with the following default value:
+// - status: Initialized to StatusUnknown, representing an unknown health status.
 func NewState() *State {
 	return &State{
 		status: StatusUnknown,
 	}
 }
 
-// CheckErr is the last error returned by the check.
+// CheckErr retrieves the last error returned by the health check.
 //
-// Note: This is cleared when the check is successful.
+// This method provides access to the most recent error encountered during a health check.
+// Note: The error is cleared when the check is successful.
+//
+// Returns:
+//   - error: The last error encountered during the health check.
 func (s *State) CheckErr() error {
 	return s.checkErr
 }
 
-// ContiguousFails is the number of contiguous failures.
+// ContiguousFails retrieves the number of consecutive failures.
 //
-// Note: This is cleared when the check is successful.
+// This method provides the count of consecutive failed health checks.
+// Note: The count is reset when the check is successful.
+//
+// Returns:
+//   - uint32: The number of contiguous failures.
 func (s *State) ContiguousFails() uint32 {
 	return s.contiguousFails.Load()
 }
 
-// LastFail is the last time the check failed.
+// LastFail retrieves the timestamp of the last failed health check.
 //
-// Note: This is persistent across successes and failures. If there is a success, this
-// will be the last time the check failed.
+// This method provides the time of the most recent failure. The value persists
+// across successes and failures. If there is a success, this will still reflect
+// the last failure.
+//
+// Returns:
+//   - time.Time: The timestamp of the last failure.
 func (s *State) LastFail() time.Time {
 	return s.lastFail
 }
 
-// LastSuccess is the last time the check was successful.
+// LastSuccess retrieves the timestamp of the last successful health check.
 //
-// Note: This is persistent across successes and failures. If there is a failure, this
-// will be the last time the check was successful.
+// This method provides the time of the most recent success. The value persists
+// across successes and failures. If there is a failure, this will still reflect
+// the last success.
+//
+// Returns:
+//   - time.Time: The timestamp of the last success.
 func (s *State) LastSuccess() time.Time {
 	return s.lastSuccess
 }
 
-// LastCheckTime is the last time the check was performed.
+// LastCheckTime retrieves the timestamp of the last health check execution.
+//
+// This method provides the time when the health check was last performed.
+//
+// Returns:
+//   - time.Time: The timestamp of the last health check.
 func (s *State) LastCheckTime() time.Time {
 	return s.lastCheckTime
 }
 
-// Status is the current status of the check.
+// Status retrieves the current health status of the check.
+//
+// This method provides the current status of the health check.
+//
+// Returns:
+//   - Status: The current health status.
 func (s *State) Status() Status {
 	return s.status
 }

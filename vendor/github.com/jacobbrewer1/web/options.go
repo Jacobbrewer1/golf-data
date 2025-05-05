@@ -31,34 +31,65 @@ import (
 	"github.com/jacobbrewer1/workerpool"
 )
 
+// Constants used for in-cluster NATS communication and leader election timing configurations.
 const (
 	// inClusterNatsEndpoint is the default NATS endpoint for in-cluster communication.
 	inClusterNatsEndpoint = "nats://nats-headless.nats:4222"
 
-	// leaderElectionLeaseDuration is the duration that non-leader candidates will wait to force acquire leadership.
+	// leaderElectionLeaseDuration specifies the duration that non-leader candidates
+	// will wait to forcefully acquire leadership if the current leader fails to renew.
 	leaderElectionLeaseDuration = 15 * time.Second
 
-	// leaderElectionRenewDeadline is the duration that the acting leader will retry refreshing leadership before giving up.
+	// leaderElectionRenewDeadline specifies the duration that the acting leader
+	// will attempt to renew its leadership before giving up.
 	leaderElectionRenewDeadline = 10 * time.Second
 
-	// leaderElectionRetryPeriod is the duration the LeaderElector clients should wait between tries of actions.
+	// leaderElectionRetryPeriod specifies the interval between retries for leader election actions.
 	leaderElectionRetryPeriod = 2 * time.Second
 )
 
 var (
-	// ErrNoHostname is returned when the hostname is not set.
+	// ErrNoHostname is a predefined error that indicates the hostname is not set.
+	//
+	// This error is returned when a required hostname is missing or not provided.
 	ErrNoHostname = errors.New("no hostname provided")
 )
 
-// AsyncTaskFunc is a function that runs asynchronously and takes a context.
-// The function should respect the context cancellation and return when the context is done.
+// AsyncTaskFunc defines a function type for asynchronous tasks.
+//
+// This function type represents tasks that run asynchronously and take a context.
+// The function should respect the context cancellation and terminate when the context is done.
 type AsyncTaskFunc = func(context.Context)
 
-// StartOption is a function that configures the application during startup.
+// StartOption defines a function type for configuring the application during startup.
+//
+// This function type is used to apply configuration options to the application.
 // It returns an error if the configuration fails.
-type StartOption func(*App) error
+//
+// Parameters:
+//   - *App: A pointer to the application instance to be configured.
+//
+// Returns:
+//   - error: An error if the configuration fails, otherwise nil.
+type StartOption = func(*App) error
 
-// WithViperConfig is a StartOption that sets up the viper config.
+// WithViperConfig is a StartOption that sets up the viper configuration.
+//
+// This function initializes a new viper instance, sets the configuration file
+// location from the application's base configuration, and reads the configuration
+// into the viper instance. If an error occurs while reading the configuration file,
+// it returns an error.
+//
+// Returns:
+//   - StartOption: A function that applies the viper configuration to the application.
+//
+// Behavior:
+//   - Sets the configuration file location using the application's base configuration.
+//   - Reads the configuration file into the viper instance.
+//   - Assigns the initialized viper instance to the application.
+//
+// Errors:
+//   - Returns an error if the configuration file cannot be read.
 func WithViperConfig() StartOption {
 	return func(a *App) error {
 		vip := viper.New()
@@ -72,6 +103,19 @@ func WithViperConfig() StartOption {
 }
 
 // WithConfigWatchers is a StartOption that registers functions to be called when the config file changes.
+//
+// This function sets up a watcher on the application's configuration file using Viper.
+// When the configuration file changes, the provided callback functions are executed.
+//
+// Parameters:
+//   - fn: A variadic list of functions to be called when the configuration file changes.
+//
+// Behavior:
+//   - Logs the name of the changed configuration file.
+//   - Executes each provided callback function in the order they are passed.
+//
+// Returns:
+//   - StartOption: A function that applies the configuration watcher to the application.
 func WithConfigWatchers(fn ...func()) StartOption {
 	return func(a *App) error {
 		vip := a.Viper()
@@ -87,6 +131,15 @@ func WithConfigWatchers(fn ...func()) StartOption {
 }
 
 // WithVaultClient is a StartOption that sets up the vault client.
+//
+// This function initializes a Vault client using the application's base context, logger, and Viper configuration.
+// The Vault client is then assigned to the application instance.
+//
+// Returns:
+//   - StartOption: A function that applies the Vault client setup to the application.
+//
+// Errors:
+//   - Returns an error if the Vault client cannot be initialized.
 func WithVaultClient() StartOption {
 	return func(a *App) error {
 		vip := a.Viper()
@@ -100,7 +153,23 @@ func WithVaultClient() StartOption {
 	}
 }
 
-// WithDatabaseFromVault is a StartOption that sets up the database from vault.
+// WithDatabaseFromVault is a StartOption that sets up the database connection using Vault secrets.
+//
+// This function retrieves database credentials from Vault and uses them to establish a database connection.
+// The retrieved secrets are expected to include the necessary information for connecting to the database.
+//
+// Returns:
+//   - StartOption: A function that applies the database setup to the application.
+//
+// Behavior:
+//   - Retrieves the database role and path from the application's Viper configuration.
+//   - Fetches the database secrets from Vault using the specified role and path.
+//   - Establishes a database connection using the retrieved secrets and assigns it to the application.
+//
+// Errors:
+//   - Returns an error if the secrets are not found in Vault.
+//   - Returns an error if there is an issue retrieving the secrets from Vault.
+//   - Returns an error if the database connection cannot be established.
 func WithDatabaseFromVault() StartOption {
 	return func(a *App) error {
 		vc := a.VaultClient()
@@ -130,7 +199,22 @@ func WithDatabaseFromVault() StartOption {
 	}
 }
 
-// WithInClusterKubeClient is a StartOption that sets up the in-cluster kube client.
+// WithInClusterKubeClient is a StartOption that sets up the in-cluster Kubernetes client.
+//
+// This function configures the application to use the Kubernetes client for in-cluster communication.
+// It retrieves the in-cluster configuration and initializes a Kubernetes client instance.
+//
+// Returns:
+//   - StartOption: A function that applies the in-cluster Kubernetes client setup to the application.
+//
+// Behavior:
+//   - Retrieves the in-cluster configuration using Kubernetes' `rest.InClusterConfig`.
+//   - Creates a Kubernetes client using the retrieved configuration.
+//   - Assigns the created Kubernetes client to the application instance.
+//
+// Errors:
+//   - Returns an error if the in-cluster configuration cannot be retrieved.
+//   - Returns an error if the Kubernetes client cannot be created.
 func WithInClusterKubeClient() StartOption {
 	return func(a *App) error {
 		cfg, err := rest.InClusterConfig()
@@ -149,8 +233,25 @@ func WithInClusterKubeClient() StartOption {
 }
 
 // WithLeaderElection is a StartOption that sets up leader election using Kubernetes lease locks.
-// The lockName parameter specifies the name of the lease lock resource to be created.
-// Returns an error if the pod name is not set or if the lock name is empty.
+//
+// This function configures leader election for the application using Kubernetes' lease lock mechanism.
+// It ensures that only one instance of the application acts as the leader at any given time.
+//
+// Parameters:
+//   - lockName: The name of the lease lock resource to be created. This is typically the name of the application.
+//
+// Returns:
+//   - StartOption: A function that applies the leader election setup to the application.
+//
+// Behavior:
+//   - Validates that the pod name and lock name are set.
+//   - Configures Kubernetes client for leader election.
+//   - Sets up leader election callbacks for handling leadership changes.
+//
+// Errors:
+//   - Returns ErrNoHostname if the pod name is not set.
+//   - Returns an error if the lock name is empty.
+//   - Returns an error if the leader election setup fails.
 func WithLeaderElection(lockName string) StartOption {
 	return func(a *App) error {
 		switch {
@@ -211,7 +312,28 @@ func WithLeaderElection(lockName string) StartOption {
 	}
 }
 
-// WithHealthCheck is a StartOption that sets up the health2 check.
+// WithHealthCheck is a StartOption that sets up the health check server.
+//
+// This function initializes a health check server for the application. It ensures
+// that only one health check server is registered. The server uses the provided
+// health checks to monitor the application's health status.
+//
+// Parameters:
+//   - checks: A variadic list of health.Check pointers representing the health checks
+//     to be added to the health checker.
+//
+// Returns:
+//   - StartOption: A function that applies the health check server setup to the application.
+//
+// Behavior:
+//   - Ensures that a health check server is not already registered.
+//   - Creates a new health checker and adds the provided health checks to it.
+//   - Registers the health check server with the application.
+//
+// Errors:
+//   - Returns an error if a health check server is already registered.
+//   - Returns an error if the health checker cannot be created.
+//   - Returns an error if any of the provided health checks cannot be added.
 func WithHealthCheck(checks ...*health.Check) StartOption {
 	return func(a *App) error {
 		if _, exists := a.servers.Load("health"); exists {
@@ -230,7 +352,7 @@ func WithHealthCheck(checks ...*health.Check) StartOption {
 		}
 
 		a.servers.Store("health", &http.Server{
-			Addr:              fmt.Sprintf(":%d", healthPort),
+			Addr:              fmt.Sprintf(":%d", HealthPort),
 			Handler:           checker.Handler(),
 			ReadHeaderTimeout: httpReadHeaderTimeout,
 		})
@@ -239,7 +361,25 @@ func WithHealthCheck(checks ...*health.Check) StartOption {
 	}
 }
 
-// WithRedisPool is a StartOption that sets up the redis pool.
+// WithRedisPool is a StartOption that sets up the Redis connection pool.
+//
+// This function initializes a Redis connection pool using the application's Viper configuration
+// and Vault client. It retrieves the Redis credentials from Vault and uses them to configure
+// the connection pool.
+//
+// Returns:
+//   - StartOption: A function that applies the Redis pool setup to the application.
+//
+// Behavior:
+//   - Retrieves the Redis credentials (e.g., password) from Vault using the configured path.
+//   - Configures the Redis connection pool with the retrieved credentials and other settings
+//     from the application's Viper configuration.
+//   - Assigns the initialized Redis pool to the application instance.
+//
+// Errors:
+//   - Returns an error if the Redis credentials cannot be retrieved from Vault.
+//   - Returns an error if the password type in the Vault secret is invalid.
+//   - Returns an error if the Redis connection pool cannot be created.
 func WithRedisPool() StartOption {
 	return func(a *App) error {
 		vip := a.Viper()
@@ -276,7 +416,19 @@ func WithRedisPool() StartOption {
 	}
 }
 
-// WithMetricsEnabled is a StartOption that enables metrics.
+// WithMetricsEnabled is a StartOption that enables or disables metrics for the application.
+//
+// This function sets the `metricsEnabled` flag in the application instance, which determines
+// whether metrics collection is enabled.
+//
+// Parameters:
+//   - metricsEnabled: A boolean value indicating whether metrics should be enabled.
+//
+// Returns:
+//   - StartOption: A function that applies the metrics configuration to the application.
+//
+// Behavior:
+//   - Updates the `metricsEnabled` field in the application instance.
 func WithMetricsEnabled(metricsEnabled bool) StartOption {
 	return func(a *App) error {
 		a.metricsEnabled = metricsEnabled
@@ -284,7 +436,17 @@ func WithMetricsEnabled(metricsEnabled bool) StartOption {
 	}
 }
 
-// WithWorkerPool is a StartOption that sets up the worker pool.
+// WithWorkerPool is a StartOption that sets up the worker pool for the application.
+//
+// This function initializes a new worker pool with delayed start enabled and assigns it
+// to the application instance.
+//
+// Returns:
+//   - StartOption: A function that applies the worker pool setup to the application.
+//
+// Behavior:
+//   - Creates a new worker pool with delayed start enabled.
+//   - Assigns the created worker pool to the application instance.
 func WithWorkerPool() StartOption {
 	return func(a *App) error {
 		wp := workerpool.New(
@@ -296,14 +458,43 @@ func WithWorkerPool() StartOption {
 	}
 }
 
-// WithDependencyBootstrap is a StartOption that bootstraps dependencies.
+// WithDependencyBootstrap is a StartOption that bootstraps application dependencies.
+//
+// This function allows the user to provide a custom dependency bootstrap function, which
+// is executed during the application startup process.
+//
+// Parameters:
+//   - fn: A function that takes a context and performs dependency initialization.
+//
+// Returns:
+//   - StartOption: A function that applies the dependency bootstrap to the application.
+//
+// Behavior:
+//   - Executes the provided dependency bootstrap function with the application's base context.
+//
+// Errors:
+//   - Returns an error if the provided bootstrap function fails.
 func WithDependencyBootstrap(fn func(ctx context.Context) error) StartOption {
 	return func(a *App) error {
 		return fn(a.baseCtx)
 	}
 }
 
-// WithIndefiniteAsyncTask is a StartOption that sets up an indefinite async task.
+// WithIndefiniteAsyncTask is a StartOption that sets up an indefinite asynchronous task.
+//
+// This function registers an asynchronous task with the application that runs indefinitely.
+// The task is stored in the application's `indefiniteAsyncTasks` map and can be executed
+// during the application's lifecycle.
+//
+// Parameters:
+//   - name: A string representing the name of the asynchronous task.
+//   - fn: An AsyncTaskFunc representing the function to be executed asynchronously.
+//
+// Returns:
+//   - StartOption: A function that applies the indefinite async task setup to the application.
+//
+// Behavior:
+//   - Stores the provided asynchronous task function in the application's `indefiniteAsyncTasks` map.
 func WithIndefiniteAsyncTask(name string, fn AsyncTaskFunc) StartOption {
 	return func(a *App) error {
 		a.indefiniteAsyncTasks.Store(name, fn)
@@ -311,7 +502,21 @@ func WithIndefiniteAsyncTask(name string, fn AsyncTaskFunc) StartOption {
 	}
 }
 
-// WithFixedHashBucket is a StartOption that sets up the fixed hash bucket.
+// WithFixedHashBucket is a StartOption that sets up a fixed-size hash bucket.
+//
+// This function initializes a fixed-size hash bucket using the provided size and assigns
+// it to the application instance. The hash bucket is used for caching or other purposes
+// requiring a fixed-size data structure.
+//
+// Parameters:
+//   - size: An unsigned integer representing the size of the hash bucket.
+//
+// Returns:
+//   - StartOption: A function that applies the fixed hash bucket setup to the application.
+//
+// Behavior:
+//   - Creates a new fixed-size hash bucket using the provided size.
+//   - Assigns the created hash bucket to the application's `fixedHashBucket` field.
 func WithFixedHashBucket(size uint) StartOption {
 	return func(a *App) error {
 		hb := cache.NewFixedHashBucket(size)
@@ -321,6 +526,23 @@ func WithFixedHashBucket(size uint) StartOption {
 }
 
 // WithServiceEndpointHashBucket is a StartOption that sets up the service endpoint hash bucket.
+//
+// This function initializes a service endpoint hash bucket for the application. The hash bucket
+// is used to manage service endpoints in a Kubernetes environment.
+//
+// Parameters:
+//   - appName: A string representing the name of the application.
+//
+// Returns:
+//   - StartOption: A function that applies the service endpoint hash bucket setup to the application.
+//
+// Behavior:
+//   - Creates a new service endpoint hash bucket using the provided application name and Kubernetes client.
+//   - Assigns the created hash bucket to the application's `serviceEndpointHashBucket` field.
+//   - Starts the service endpoint hash bucket with the application's base context.
+//
+// Errors:
+//   - Returns an error if the service endpoint hash bucket fails to start.
 func WithServiceEndpointHashBucket(appName string) StartOption {
 	return func(a *App) error {
 		sb := cache.NewServiceEndpointHashBucket(
@@ -337,7 +559,25 @@ func WithServiceEndpointHashBucket(appName string) StartOption {
 	}
 }
 
-// WithNatsClient is a StartOption that sets up the nats client.
+// WithNatsClient is a StartOption that sets up the NATS client.
+//
+// This function initializes a NATS client using the provided target endpoint.
+// The created client is assigned to the application's `natsClient` field.
+//
+// Parameters:
+//   - target: A string representing the NATS server endpoint.
+//
+// Returns:
+//   - StartOption: A function that applies the NATS client setup to the application.
+//
+// Behavior:
+//   - Validates that the target endpoint is not empty.
+//   - Connects to the NATS server using the provided target endpoint.
+//   - Assigns the created NATS client to the application.
+//
+// Errors:
+//   - Returns an error if the target endpoint is empty.
+//   - Returns an error if the connection to the NATS server fails.
 func WithNatsClient(target string) StartOption {
 	return func(a *App) error {
 		if target == "" {
@@ -354,12 +594,42 @@ func WithNatsClient(target string) StartOption {
 	}
 }
 
-// WithInClusterNatsClient is a StartOption that sets up the nats client with the in-cluster endpoint.
+// WithInClusterNatsClient is a StartOption that sets up the NATS client with the in-cluster endpoint.
+//
+// This function is a wrapper around `WithNatsClient` that uses the default in-cluster NATS endpoint.
+//
+// Returns:
+//   - StartOption: A function that applies the in-cluster NATS client setup to the application.
+//
+// Behavior:
+//   - Calls `WithNatsClient` with the predefined in-cluster NATS endpoint.
 func WithInClusterNatsClient() StartOption {
 	return WithNatsClient(inClusterNatsEndpoint)
 }
 
-// WithNatsJetStream is a StartOption that sets up nats jetstream with the given stream name, retention policy, and subjects.
+// WithNatsJetStream is a StartOption that sets up NATS JetStream with the given stream name, retention policy, and subjects.
+//
+// This function initializes a JetStream instance using the application's NATS client. It creates or updates
+// a stream with the specified configuration and assigns the JetStream instance and stream to the application.
+//
+// Parameters:
+//   - streamName: A string representing the name of the JetStream stream to be created or updated.
+//   - retentionPolicy: A jetstream.RetentionPolicy specifying the retention policy for the stream.
+//   - subjects: A slice of strings representing the subjects to be associated with the stream.
+//
+// Returns:
+//   - StartOption: A function that applies the JetStream setup to the application.
+//
+// Behavior:
+//   - Retrieves the NATS client from the application.
+//   - Initializes a JetStream instance using the NATS client.
+//   - Creates or updates a stream with the specified name, retention policy, and subjects.
+//   - Assigns the JetStream instance and the created stream to the application.
+//
+// Errors:
+//   - Returns an error if the JetStream instance cannot be created.
+//   - Returns an error if the stream cannot be created or updated.
+//   - Returns an error if the stream cannot be retrieved.
 func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPolicy, subjects []string) StartOption {
 	return func(a *App) error {
 		natsClient := a.NatsClient()
@@ -389,7 +659,25 @@ func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPol
 	}
 }
 
-// WithKubernetesPodInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Pod objects.
+// WithKubernetesPodInformer is a StartOption that sets up a Kubernetes Pod informer.
+//
+// This function initializes a Kubernetes SharedInformerFactory and creates an informer
+// for Kubernetes Pod objects. The informer is used to watch and cache Pod resources
+// in the Kubernetes cluster.
+//
+// Parameters:
+//   - informerOptions: A variadic list of SharedInformerOption values to configure the SharedInformerFactory.
+//
+// Returns:
+//   - StartOption: A function that applies the Kubernetes Pod informer setup to the application.
+//
+// Behavior:
+//   - Initializes the Kubernetes SharedInformerFactory with the provided options.
+//   - Creates an informer and lister for Kubernetes Pod objects.
+//   - Logs the creation of the Kubernetes Pod informer.
+//
+// Errors:
+//   - Returns an error if the Kubernetes SharedInformerFactory cannot be initialized.
 func WithKubernetesPodInformer(informerOptions ...informers.SharedInformerOption) StartOption {
 	return func(a *App) error {
 		initKubernetesInformerFactory(a, informerOptions...)
@@ -402,7 +690,25 @@ func WithKubernetesPodInformer(informerOptions ...informers.SharedInformerOption
 	}
 }
 
-// WithKubernetesSecretInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Secret objects.
+// WithKubernetesSecretInformer is a StartOption that sets up a Kubernetes Secret informer.
+//
+// This function initializes a Kubernetes SharedInformerFactory and creates an informer
+// for Kubernetes Secret objects. The informer is used to watch and cache Secret resources
+// in the Kubernetes cluster.
+//
+// Parameters:
+//   - informerOptions: A variadic list of SharedInformerOption values to configure the SharedInformerFactory.
+//
+// Returns:
+//   - StartOption: A function that applies the Kubernetes Secret informer setup to the application.
+//
+// Behavior:
+//   - Initializes the Kubernetes SharedInformerFactory with the provided options.
+//   - Creates an informer and lister for Kubernetes Secret objects.
+//   - Logs the creation of the Kubernetes Secret informer.
+//
+// Errors:
+//   - Returns an error if the Kubernetes SharedInformerFactory cannot be initialized.
 func WithKubernetesSecretInformer(informerOptions ...informers.SharedInformerOption) StartOption {
 	return func(a *App) error {
 		initKubernetesInformerFactory(a, informerOptions...)

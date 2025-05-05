@@ -10,30 +10,47 @@ import (
 	"github.com/jacobbrewer1/web/logging"
 )
 
+// Status represents the health status of a service.
+//
+// This type is used to define various states of a service's health, such as
+// whether it is operational, degraded, or down.
 type Status int
 
 const (
 	// StatusDown indicates that the service is unhealthy.
+	//
+	// This status is used when the service is not operational and cannot
+	// handle requests.
 	StatusDown Status = iota
 
 	// StatusDegraded indicates that the service is degraded.
 	//
-	// This is different to StatusDown in that the service is still operational,
-	// but not performing at its best.
-	// For example, a service may be degraded if it is running at 80% CPU usage,
-	// but still responding to requests.
-	// This is useful for services that are running in a cluster, where one or
-	// more nodes may be degraded, but the service as a whole is still operational.
+	// This status is used when the service is still operational but not
+	// performing optimally. For example, a service may be considered degraded
+	// if it is under high load but still responding to requests. This is
+	// particularly useful in clustered environments where some nodes may be
+	// degraded, but the overall service remains operational.
 	StatusDegraded
 
 	// StatusUp indicates that the service is healthy.
+	//
+	// This status is used when the service is fully operational and performing
+	// as expected.
 	StatusUp
 
 	// StatusUnknown indicates that the service status is unknown.
+	//
+	// This status is used when the health of the service cannot be determined.
 	StatusUnknown
 )
 
 // IsValid checks if the Status is valid.
+//
+// This method verifies whether the Status value is one of the predefined valid
+// statuses: StatusUp, StatusDown, StatusDegraded, or StatusUnknown.
+//
+// Returns:
+//   - bool: true if the Status is valid, false otherwise.
 func (s Status) IsValid() bool {
 	switch s {
 	case StatusUp, StatusDown, StatusDegraded, StatusUnknown:
@@ -43,6 +60,12 @@ func (s Status) IsValid() bool {
 }
 
 // String returns the string representation of the Status.
+//
+// This method converts the Status value to its corresponding string
+// representation. If the Status is invalid, it returns "invalid".
+//
+// Returns:
+//   - string: The string representation of the Status.
 func (s Status) String() string {
 	switch s {
 	case StatusUp:
@@ -59,6 +82,13 @@ func (s Status) String() string {
 }
 
 // MarshalJSON marshals the Status to JSON as a string.
+//
+// This method encodes the Status value as a JSON string. If the Status is
+// invalid, it returns an error.
+//
+// Returns:
+//   - []byte: The JSON-encoded string representation of the Status.
+//   - error: An error if the Status is invalid or if encoding fails.
 func (s Status) MarshalJSON() ([]byte, error) {
 	if !s.IsValid() {
 		return nil, fmt.Errorf("%s is not a valid status", s)
@@ -71,14 +101,19 @@ func (s Status) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// StandardStatusListener is a standard implementation of the StatusListenerFunc that logs the
-// status change to the provided logger.
+// StandardStatusListener creates a StatusListenerFunc that logs status changes.
 //
-// Note: This is not implemented into the health check itself and you will need to
-// implement this yourself if you want to use it. This can be done by using the
-// WithCheckOnStatusChange option when creating a new check.
+// This function returns a StatusListenerFunc, which logs the health check's status changes
+// using the provided logger. It is a standard implementation for monitoring and logging
+// health check status transitions.
 //
-// Example:
+// Parameters:
+//   - l (*slog.Logger): The logger used to log status changes.
+//
+// Returns:
+//   - StatusListenerFunc: A function that logs the health check's status changes.
+//
+// Example usage:
 //
 //	health.NewCheck("example", func(ctx context.Context) error {
 //		return nil
