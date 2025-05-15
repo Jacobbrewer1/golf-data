@@ -37,8 +37,8 @@ github.com/fsnotify/fsnotify/internal
 # github.com/fxamacker/cbor/v2 v2.7.0
 ## explicit; go 1.17
 github.com/fxamacker/cbor/v2
-# github.com/getkin/kin-openapi v0.127.0
-## explicit; go 1.20
+# github.com/getkin/kin-openapi v0.131.0
+## explicit; go 1.22.5
 github.com/getkin/kin-openapi/openapi3
 # github.com/go-jose/go-jose/v4 v4.0.5
 ## explicit; go 1.21
@@ -160,9 +160,6 @@ github.com/iancoleman/strcase
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
-# github.com/invopop/yaml v0.3.1
-## explicit; go 1.14
-github.com/invopop/yaml
 # github.com/jacobbrewer1/goredis v0.1.7
 ## explicit; go 1.24
 github.com/jacobbrewer1/goredis
@@ -271,6 +268,12 @@ github.com/oapi-codegen/oapi-codegen/v2/pkg/util
 ## explicit; go 1.20
 github.com/oapi-codegen/runtime
 github.com/oapi-codegen/runtime/types
+# github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037
+## explicit; go 1.22.5
+github.com/oasdiff/yaml
+# github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90
+## explicit; go 1.22.5
+github.com/oasdiff/yaml3
 # github.com/pelletier/go-toml/v2 v2.2.3
 ## explicit; go 1.21.0
 github.com/pelletier/go-toml/v2
