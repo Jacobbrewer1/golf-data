@@ -19,7 +19,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/stretchr/testify v1.10.0
-	github.com/vektra/mockery/v2 v2.53.3
+	github.com/vektra/mockery/v2 v2.53.4
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20250317152234-d0a798f77473
 )
 
