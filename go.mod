@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/gorilla/mux v1.8.1
-	github.com/hashicorp/go-retryablehttp v0.7.7
+	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jacobbrewer1/pagefilter v0.1.10
 	github.com/jacobbrewer1/patcher v0.1.21
 	github.com/jacobbrewer1/uhttp v0.0.13-0.20250414121031-88ad51468b81
