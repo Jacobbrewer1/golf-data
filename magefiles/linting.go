@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -68,7 +69,7 @@ type Lint mg.Namespace
 
 // Apis lints the API spec.
 func (l Lint) Apis() error {
-	fmt.Println("[INFO] Linting API spec...")
+	log(slog.LevelInfo, "Linting API specs")
 
 	if err := l.installOpenApiLint(); err != nil {
 		return fmt.Errorf("failed to install openapi-lint: %w", err)
@@ -108,7 +109,7 @@ func (l Lint) Apis() error {
 			resp.ImpactScore.CategorizedSummary.Evolution < 100 {
 			failed = true
 			failedSpecs = append(failedSpecs, spec)
-			fmt.Println("[ERROR] API spec linting failed for", spec)
+			log(slog.LevelError, fmt.Sprintf("API spec linting failed for %s", spec))
 
 			if err := os.Rename("./routes-validator-report.md", "./routes-validator-report-"+spec+".md"); err != nil {
 				return fmt.Errorf("failed to rename report file: %w", err)
@@ -116,7 +117,7 @@ func (l Lint) Apis() error {
 			continue
 		}
 
-		fmt.Printf(`[INFO] API spec linting results:
+		log(slog.LevelInfo, fmt.Sprintf(`API spec linting results:
 Usability: %d
 Security: %d
 Robustness: %d
@@ -128,10 +129,10 @@ Overall: %d
 			resp.ImpactScore.CategorizedSummary.Robustness,
 			resp.ImpactScore.CategorizedSummary.Evolution,
 			resp.ImpactScore.CategorizedSummary.Overall,
-		)
+		))
 
-		fmt.Println("[INFO] API spec linting passed for", spec)
-		fmt.Println("[DEBUG] Removing report file...")
+		log(slog.LevelInfo, fmt.Sprintf("API spec linting passed for %s", spec))
+		log(slog.LevelDebug, "Removing report file...")
 		if err := os.Remove("./routes-validator-report.md"); err != nil {
 			return fmt.Errorf("failed to remove report file: %w", err)
 		}
@@ -139,7 +140,7 @@ Overall: %d
 
 	if failed {
 		// Combine all reports into a single file
-		fmt.Println("[DEBUG] Combining reports...")
+		log(slog.LevelDebug, "Combining all reports into a single file...")
 		if _, err := os.Create("./routes-validator-report.md"); err != nil {
 			return fmt.Errorf("failed to create report file: %w", err)
 		}
@@ -171,13 +172,13 @@ Overall: %d
 		return fmt.Errorf("API spec linting failed")
 	}
 
-	fmt.Println("[INFO] API spec linting passed")
+	log(slog.LevelInfo, "API spec linting passed for all specs")
 
 	return nil
 }
 
 func (l Lint) installOpenApiLint() error {
-	fmt.Println("[INFO] Installing OpenAPI Lint...")
+	log(slog.LevelInfo, "Installing OpenAPI linter")
 
 	// Is the linter already installed?
 	if _, err := exec.LookPath("lint-openapi"); err == nil {
