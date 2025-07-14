@@ -1,0 +1,586 @@
+const (
+    loggingKeyError = "err"
+)
+
+var (
+    // TotalRequests is a counter for the total number of requests by ALL operations.
+    TotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+        Name: "total_requests",
+        Help: "Total number of requests",
+    }, []string{"code", "method"})
+
+    {{ range . }}{{$opid := .OperationId}}
+    // {{$opid}}TotalRequests is a counter for the total number of requests for {{$opid}}.
+    {{ $opid }}TotalRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+        Name: "{{ $opid | lower }}_total_requests",
+        Help: "Total number of requests for {{ $opid }}",
+    }, []string{"code", "method"})
+
+    // {{$opid}}RequestDuration is a histogram for the request duration for {{$opid}}.
+    {{ $opid }}RequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+        Name:    "{{ $opid | lower }}_request_duration_seconds",
+        Help:    "Request duration in seconds for {{ $opid }}",
+        Buckets: prometheus.DefBuckets,
+    }, []string{"code", "method"})
+
+    {{ if ne .Method "GET" -}}
+    // {{$opid}}RequestSize is a histogram for the request size for {{$opid}}.
+    {{ $opid }}RequestSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+        Name:    "{{ $opid | lower }}_request_size_bytes",
+        Help:    "Request size in bytes for {{ $opid }}",
+        Buckets: prometheus.DefBuckets,
+    }, []string{"code", "method"})
+    {{ end }}
+
+    // {{$opid}}ResponseSize is a histogram for the response size for {{$opid}}.
+    {{ $opid }}ResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+        Name:    "{{ $opid | lower }}_response_size_bytes",
+        Help:    "Response size in bytes for {{ $opid }}",
+        Buckets: prometheus.DefBuckets,
+    }, []string{"code", "method"})
+    {{ end }}
+)
+
+type RateLimiterFunc = func(context.Context, *http.Request) bool
+type ErrorHandlerFunc = func(context.Context, *slog.Logger, http.ResponseWriter, error)
+
+// ServerInterfaceWrapper converts contexts to parameters.
+type ServerInterfaceWrapper struct {
+    l *slog.Logger
+
+    authz ServerInterface
+    handler ServerInterface
+    rateLimiter RateLimiterFunc
+
+    errorHandlerFunc ErrorHandlerFunc
+    isInternalAPI bool
+}
+
+// WithLogger sets the logger for the server.
+func WithLogger(l *slog.Logger) ServerOption {
+    return func(s *ServerInterfaceWrapper) {
+        s.l = l
+    }
+}
+
+// WithAuthorization applies the passed authorization middleware to the server.
+func WithAuthorization(authz ServerInterface) ServerOption {
+    return func(s *ServerInterfaceWrapper) {
+        s.authz = authz
+    }
+}
+
+// WithRateLimiter applies the rate limiter middleware to routes with x-global-rate-limit.
+func WithRateLimiter(rateLimiter RateLimiterFunc) ServerOption {
+    return func(s *ServerInterfaceWrapper) {
+        s.rateLimiter = rateLimiter
+    }
+}
+
+// WithErrorHandlerFunc sets the error handler function for the server.
+func WithErrorHandlerFunc(errorHandlerFunc ErrorHandlerFunc) ServerOption {
+    return func(s *ServerInterfaceWrapper) {
+        s.errorHandlerFunc = errorHandlerFunc
+    }
+}
+
+// WithInternalAPI sets the server as an internal API.
+func WithInternalAPI(isInternalAPI bool) ServerOption {
+    return func(s *ServerInterfaceWrapper) {
+        s.isInternalAPI = isInternalAPI
+    }
+}
+
+// ServerOption represents an optional feature applied to the server.
+type ServerOption func(s *ServerInterfaceWrapper)
+
+{{range .}}{{$opid := .OperationId}}
+{{- $ret := "[]byte" -}}
+{{- $method := .Method | lower }}
+{{- if (eq $method "delete") }}
+{{- $ret = "*mhttp.ResourceDelete" -}}
+{{- end }}
+{{- $form := "" -}}
+
+// {{$opid}} operation middleware
+func (siw *ServerInterfaceWrapper) {{$opid}}(w http.ResponseWriter, r *http.Request) {
+  l := logging.LoggerFromRequest(siw.l, r)
+  l = l.With(
+    slog.String(logging.KeyHandler, "{{$opid}}"),
+  )
+
+  ctx := r.Context()
+  w = uhttp.NewResponseWriter(w,
+    uhttp.WithDefaultStatusCode(http.StatusOK),
+    uhttp.WithDefaultHeader(uhttp.HeaderRequestID, uhttp.RequestIDFromContext(ctx)),
+    uhttp.WithDefaultHeader(uhttp.HeaderContentType, "application/json; charset=utf-8"),
+  )
+
+  {{range .PathParams}}// ------------- Path parameter "{{.ParamName}}" -------------
+  var {{$varName := .GoVariableName}}{{$varName}} {{.TypeDef}}
+  {{- if .IsPassThrough }}{{$varName}} = mux.Vars(r)["{{.ParamName}}"]{{ end }}
+  {{- if .IsJson }}
+  err = json.Unmarshal([]byte(mux.Vars(r)["{{.ParamName}}"]), &{{$varName}})
+  if err != nil {
+    siw.errorHandlerFunc(ctx, l, w, &UnmarshalingParamError{ParamName: "{{.ParamName}}", Err: err})
+    return
+  }
+  {{end}}
+  {{- if .IsStyled }}
+  if err := runtime.BindStyledParameterWithOptions(
+    "{{.Style}}",
+    "{{.ParamName}}",
+     mux.Vars(r)["{{.ParamName}}"],
+     &{{$varName}},
+     runtime.BindStyledParameterOptions{Explode: {{.Explode}}, Required: {{.Required}}},
+  ); err != nil {
+    siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
+    return
+  }
+  {{end}}
+
+  {{end}}
+
+  {{if .RequiresParamObject}}
+    // Parameter object where we will unmarshal all parameters from the context
+    params := new({{.OperationId}}Params)
+
+    {{range $paramIdx, $param := .QueryParams}}
+      {{- if (or (or .Required .IsPassThrough) (or .IsJson .IsStyled)) -}}
+        // ------------- {{if .Required}}Required{{else}}Optional{{end}} query parameter "{{.ParamName}}" -------------
+      {{- end -}}
+      {{- if (or (or .Required .IsPassThrough) .IsJson) -}}
+        if paramValue := r.URL.Query().Get("{{.ParamName}}"); paramValue != "" {
+
+        {{if .IsPassThrough}}
+          params.{{.GoName}} = {{if not .Required}}&{{end}}paramValue
+        {{end}}
+
+        {{if .IsJson}}
+          value := new({{.TypeDef}})
+          if err := json.Unmarshal([]byte(paramValue), value); err != nil {
+            siw.errorHandlerFunc(ctx, l, w, &UnmarshalingParamError{ParamName: "{{.ParamName}}", Err: err})
+            return
+          }
+
+          params.{{.GoName}} = {{if not .Required}}&{{end}}value
+        {{end}}
+        }{{if .Required}} else {
+            siw.errorHandlerFunc(ctx, l, w, &RequiredParamError{ParamName: "{{.ParamName}}"})
+            return
+        }{{end}}
+      {{end}}
+      {{- if .IsStyled}}
+      if err := runtime.BindQueryParameter(
+        "{{.Style}}",
+        {{.Explode}},
+        {{.Required}},
+        "{{.ParamName}}",
+        r.URL.Query(),
+        &params.{{.GoName}},
+      ); err != nil {
+        siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
+        return
+      }
+      {{end}}
+  {{end}}
+
+    {{if .HeaderParams}}
+      headers := r.Header
+
+      {{range .HeaderParams}}// ------------- {{if .Required}}Required{{else}}Optional{{end}} header parameter "{{.ParamName}}" -------------
+        if valueList, found := headers[http.CanonicalHeaderKey("{{.ParamName}}")]; found {
+          var {{.GoName}} {{.TypeDef}}
+          n := len(valueList)
+          if n != 1 {
+            siw.errorHandlerFunc(ctx, l, w, &TooManyValuesForParamError{ParamName: "{{.ParamName}}", Count: n})
+            return
+          }
+
+        {{if .IsPassThrough}}
+          params.{{.GoName}} = {{if not .Required}}&{{end}}valueList[0]
+        {{end}}
+
+        {{if .IsJson}}
+          if err := json.Unmarshal([]byte(valueList[0]), &{{.GoName}}); err != nil {
+            siw.errorHandlerFunc(ctx, l, w, &UnmarshalingParamError{ParamName: "{{.ParamName}}", Err: err})
+            return
+          }
+        {{end}}
+
+        {{if .IsStyled}}
+          err = runtime.BindStyledParameterWithOptions("{{.Style}}", "{{.ParamName}}", valueList[0], &{{.GoName}}, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: {{.Explode}}, Required: {{.Required}}})
+          if err != nil {
+            siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
+            return
+          }
+        {{end}}
+
+          params.{{.GoName}} = {{if not .Required}}&{{end}}{{.GoName}}
+
+        } {{if .Required}}else {
+            err = fmt.Errorf("Header parameter {{.ParamName}} is required, but not found")
+            siw.errorHandlerFunc(ctx, l, w, &RequiredHeaderError{ParamName: "{{.ParamName}}", Err: err})
+            return
+        }{{end}}
+
+      {{end}}
+    {{end}}
+
+    {{range .CookieParams}}
+      var cookie *http.Cookie
+
+      if cookie, err = r.Cookie("{{.ParamName}}"); err == nil {
+
+      {{- if .IsPassThrough}}
+        params.{{.GoName}} = {{if not .Required}}&{{end}}cookie.Value
+      {{end}}
+
+      {{- if .IsJson}}
+        var value {{.TypeDef}}
+        var decoded string
+        decoded, err := url.QueryUnescape(cookie.Value)
+        if err != nil {
+          err = fmt.Errorf("Error unescaping cookie parameter '{{.ParamName}}': %w", err)
+          siw.errorHandlerFunc(ctx, l, w, &UnescapedCookieParamError{ParamName: "{{.ParamName}}", Err: err})
+          return
+        }
+
+        if err := json.Unmarshal([]byte(decoded), &value); err != nil {
+          siw.errorHandlerFunc(ctx, l, w, &UnmarshalingParamError{ParamName: "{{.ParamName}}", Err: err})
+          return
+        }
+
+        params.{{.GoName}} = {{if not .Required}}&{{end}}value
+      {{end}}
+
+      {{- if .IsStyled}}
+        var value {{.TypeDef}}
+        if err := runtime.BindStyledParameterWithOptions(
+            "simple",
+            "{{.ParamName}}",
+            cookie.Value,
+            &value,
+            runtime.BindStyledParameterOptions{Explode: {{.Explode}}, Required: {{.Required}}},
+        ); err != nil {
+          siw.errorHandlerFunc(ctx, l, w, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
+          return
+        }
+        params.{{.GoName}} = {{if not .Required}}&{{end}}value
+      {{end}}
+      }
+
+      {{- if .Required}} else {
+        siw.errorHandlerFunc(ctx, l, w, &RequiredParamError{ParamName: "{{.ParamName}}"})
+        return
+      }
+      {{- end}}
+    {{end}}
+  {{end}}
+
+  {{range .Bodies}}
+  {{$contentType := .ContentType -}}
+  {{ if eq $contentType "application/json" }}
+  {{with .TypeDef $opid}}
+    // ------------- Body parameter for {{$opid}} for {{$contentType}} ContentType -------------
+    jsonBody := new({{.TypeName}})
+    if err := siw.parseRequestBody(r, "{{$contentType}}", jsonBody); err != nil {
+        siw.errorHandlerFunc(ctx, l, w, err)
+        return
+    } else if jsonBody == nil {
+        siw.errorHandlerFunc(ctx, l, w, &UnmarshalingBodyError{Err: errors.New("empty body")})
+        return
+    }
+
+    // Convert the request body type to the server handler type
+    body := (*{{ .Schema.TypeDecl }})(jsonBody)
+  {{end}}
+  {{else if eq $contentType "application/x-www-form-urlencoded" }}
+  {{/* If the defined body is a file, then try and get the file into the expected type */}}
+    body := &{{$opid}}RequestBody{
+      File: new(openapi_types.File),
+    }
+
+    if err := siw.parseRequestBody(r, "{{$contentType}}", body.File); err != nil {
+        siw.errorHandlerFunc(ctx, l, w, err)
+        return
+    }
+  {{end}}
+  {{end}}
+
+  {{ if .Spec.Security }}
+  if siw.authz == nil {
+    siw.errorHandlerFunc(ctx, l, w, errors.New("authorization middleware not set"))
+    return
+  }
+
+  _, err := siw.authz.{{$opid}}(logging.LoggerWithComponent(l, "auth"), r{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}}{{if gt (len .Bodies) 0}}, body{{end}})
+  if err != nil {
+    siw.errorHandlerFunc(ctx, l, w, err)
+    return
+  }
+  {{ end }}
+
+  if siw.rateLimiter != nil {
+    if !siw.rateLimiter(ctx, r) {
+        encodeErrorResponse(w, &uhttp.HTTPError{
+            ErrorMessage: common.ErrorMessage{
+                Title:  http.StatusText(http.StatusTooManyRequests),
+                Detail: "Rate limit exceeded",
+                Status: http.StatusTooManyRequests,
+                RequestId: uhttp.RequestIDFromContext(ctx),
+                Details: []any{
+                    "Rate limit exceeded",
+                },
+            },
+        })
+        return
+    }
+  }
+
+  // Invoke the callback with all the unmarshalled arguments
+  resp, err := siw.handler.{{$opid}}(ctx, logging.LoggerWithComponent(l, "handler"), r{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}}{{if gt (len .Bodies) 0}}, body{{end}}{{$form}})
+  if err != nil {
+    siw.errorHandlerFunc(ctx, l, w, err)
+    return
+  }
+
+  {{ $responseCode := "500" }}
+  {{ range $k, $v := .Responses -}}
+    {{ if or (eq $v.StatusCode "200") (eq $v.StatusCode "201") (eq $v.StatusCode "202") }}{{ $responseCode = $v.StatusCode }}{{ end -}}
+  {{ end }}
+
+  {{/*
+  Always return a StatusNoContent on delete operations that are not async.
+  */ -}}
+  {{- if and (eq $method "delete") (ne $responseCode "202") }}
+  w.WriteHeader(http.StatusNoContent)
+  return
+  {{- else }}
+  {{- $responseCode := "500" }}
+  {{- $contentType := "application/json" }}
+  {{ range $k, $v := .Responses -}}
+  {{ if or (eq $v.StatusCode "200") (eq $v.StatusCode "201") (eq $v.StatusCode "202") (eq $v.StatusCode "204") }}
+    {{ $responseCode = $v.StatusCode }}
+    {{ range $unused, $ct := $v.Contents }}
+      {{ $contentType = $ct.ContentType }}
+    {{ end }}
+    {{ end -}}
+  {{ end }}
+  w.Header().Set(uhttp.HeaderContentType, "{{ $contentType }}; charset=utf-8")
+  w.WriteHeader({{ $responseCode }})
+  {{ if eq $contentType "application/json" }}err = json.NewEncoder(w).Encode(resp){{ end -}}
+  {{ if eq $contentType "text/plain" -}}
+    w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
+    _, err = w.Write(resp)
+  {{ end -}}
+  {{- end }}
+  if err != nil {
+    siw.errorHandlerFunc(ctx, l, w, err)
+    return
+  }
+}
+{{end}}
+
+// parseRequestBody parses the request body into the expected type.
+func (siw *ServerInterfaceWrapper) parseRequestBody(r *http.Request, contentType string, dest any) error {
+    if r.Body == http.NoBody {
+        return &UnmarshalingBodyError{Err: errors.New("empty body")}
+    }
+
+    switch contentType {
+    case "application/json":
+        decoder := json.NewDecoder(r.Body)
+        if !siw.isInternalAPI {
+            decoder.DisallowUnknownFields()
+        }
+        if err := decoder.Decode(dest); err != nil {
+            e := new(uhttp.HTTPError)
+            if errors.As(err, &e) {
+            	return err
+            }
+            return &UnmarshalingBodyError{Err: err}
+        }
+    case "application/x-www-form-urlencoded":
+        bdy, err := io.ReadAll(r.Body)
+        if err != nil {
+            e := new(uhttp.HTTPError)
+            if errors.As(err, &e) {
+            	return err
+            }
+            return &UnmarshalingBodyError{Err: err}
+        }
+
+        body, ok := dest.(*openapi_types.File)
+        if !ok {
+            e := new(uhttp.HTTPError)
+            if errors.As(err, &e) {
+            	return err
+            }
+            return &UnmarshalingBodyError{Err: fmt.Errorf("expected *openapi_types.FormData, got %T", dest)}
+        }
+
+        body.InitFromBytes(bdy, "file")
+    default:
+        return &UnsupportedContentTypeError{ContentType: contentType}
+    }
+
+    return nil
+}
+
+// handleError handles returning a correctly-formatted error to the API caller.
+func handleError(ctx context.Context, l *slog.Logger, w http.ResponseWriter, err error) {
+    l.Error("Error handling request", slog.String(loggingKeyError, err.Error()))
+
+    e := new(uhttp.HTTPError)
+    if errors.As(err, &e) {
+      e.RequestId = uhttp.RequestIDFromContext(ctx)
+      _ = encodeErrorResponse(w, e)
+      return
+    }
+
+    code := http.StatusInternalServerError
+    if e, ok := err.(uhttp.StatusCoder); ok {
+        code = e.StatusCode()
+    }
+
+	_ = encodeErrorResponse(w, &uhttp.HTTPError{
+		ErrorMessage: common.ErrorMessage{
+			Title:     http.StatusText(code),
+			Detail:    "error handling request",
+			Status:    code,
+			RequestId: uhttp.RequestIDFromContext(ctx),
+			Details: []any{
+				err.Error(),
+			},
+		},
+	})
+}
+
+// encodeErrorResponse encodes input response as an RFC-7807-compliant response to w.
+func encodeErrorResponse(w http.ResponseWriter, response any) error {
+    w.Header().Set(uhttp.HeaderContentType, "application/problem+json; charset=utf-8")
+
+    if e, ok := response.(uhttp.StatusCoder); ok {
+        w.WriteHeader(e.StatusCode())
+    }
+
+    return json.NewEncoder(w).Encode(response)
+}
+
+type UnescapedCookieParamError struct {
+    ParamName string
+    Err error
+}
+
+func (e *UnescapedCookieParamError) StatusCode() int {
+    return http.StatusBadRequest
+}
+
+func (e *UnescapedCookieParamError) Error() string {
+    return fmt.Sprintf("error unescaping cookie parameter '%s'", e.ParamName)
+}
+
+func (e *UnescapedCookieParamError) Unwrap() error {
+    return e.Err
+}
+
+type UnsupportedContentTypeError struct {
+    ContentType string
+}
+
+func (e *UnsupportedContentTypeError) StatusCode() int {
+    return http.StatusUnsupportedMediaType
+}
+
+func (e *UnsupportedContentTypeError) Error() string {
+    return fmt.Sprintf("Unsupported content type: %s", e.ContentType)
+}
+
+type UnmarshalingBodyError struct {
+    Err error
+}
+
+func (e *UnmarshalingBodyError) StatusCode() int {
+    return http.StatusBadRequest
+}
+
+func (e *UnmarshalingBodyError) Error() string {
+    return fmt.Sprintf("Error unmarshaling request body: %s", e.Err.Error())
+}
+
+type UnmarshalingParamError struct {
+    ParamName string
+    Err error
+}
+
+func (e *UnmarshalingParamError) StatusCode() int {
+    return http.StatusBadRequest
+}
+
+func (e *UnmarshalingParamError) Error() string {
+    return fmt.Sprintf("Error unmarshaling parameter %s as JSON: %s", e.ParamName, e.Err.Error())
+}
+
+func (e *UnmarshalingParamError) Unwrap() error {
+    return e.Err
+}
+
+type RequiredParamError struct {
+    ParamName string
+}
+
+func (e *RequiredParamError) StatusCode() int {
+    return http.StatusBadRequest
+}
+
+func (e *RequiredParamError) Error() string {
+    return fmt.Sprintf("Query argument %s is required, but not found", e.ParamName)
+}
+
+type RequiredHeaderError struct {
+    ParamName string
+    Err error
+}
+
+func (e *RequiredHeaderError) StatusCode() int {
+    return http.StatusBadRequest
+}
+
+func (e *RequiredHeaderError) Error() string {
+    return fmt.Sprintf("Header parameter %s is required, but not found", e.ParamName)
+}
+
+func (e *RequiredHeaderError) Unwrap() error {
+    return e.Err
+}
+
+type InvalidParamFormatError struct {
+    ParamName string
+	Err error
+}
+
+func (e *InvalidParamFormatError) StatusCode() int {
+    return http.StatusBadRequest
+}
+
+func (e *InvalidParamFormatError) Error() string {
+    return fmt.Sprintf("Invalid format for parameter %s: %s", e.ParamName, e.Err.Error())
+}
+
+func (e *InvalidParamFormatError) Unwrap() error {
+    return e.Err
+}
+
+type TooManyValuesForParamError struct {
+    ParamName string
+    Count int
+}
+
+func (e *TooManyValuesForParamError) StatusCode() int {
+    return http.StatusBadRequest
+}
+
+func (e *TooManyValuesForParamError) Error() string {
+    return fmt.Sprintf("Expected one value for %s, got %d", e.ParamName, e.Count)
+}

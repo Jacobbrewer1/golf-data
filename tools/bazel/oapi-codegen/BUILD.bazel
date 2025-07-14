@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "oapi-codegen_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/jacobbrewer1/golf-data/tools/bazel/oapi-codegen",
+    visibility = ["//visibility:private"],
+    deps = ["@com_github_oapi_codegen_oapi_codegen_v2//pkg/codegen"],
+)
+
+go_binary(
+    name = "oapi-codegen",
+    embed = [":oapi-codegen_lib"],
+    visibility = ["//visibility:public"],
+)

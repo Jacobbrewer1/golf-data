@@ -1,0 +1,14 @@
+{{range .}}{{$opid := .OperationId}}
+{{range .Bodies}}
+{{if .IsSupported -}}
+{{$contentType := .ContentType -}}
+{{with .TypeDef $opid}}
+// {{.TypeName}} defines body for {{$opid}} for {{$contentType}} ContentType.
+type {{.TypeName}} {{if .IsAlias}}={{end}} {{.Schema.TypeDecl}}
+{{- if ne (printf "%sJSONBody" $opid) .Schema.TypeDecl }}
+type {{$opid}}JSONBody = {{.Schema.TypeDecl}}
+{{- end }}
+{{end}}
+{{end}}
+{{end}}
+{{end}}

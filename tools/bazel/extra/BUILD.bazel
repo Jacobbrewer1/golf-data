@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "extra_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/jacobbrewer1/golf-data/tools/bazel/extra",
+    visibility = ["//visibility:private"],
+    deps = ["@in_gopkg_yaml_v2//:yaml_v2"],
+)
+
+go_binary(
+    name = "extra",
+    embed = [":extra_lib"],
+    visibility = ["//visibility:public"],
+)

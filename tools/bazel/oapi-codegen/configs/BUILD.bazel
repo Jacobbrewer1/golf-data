@@ -1,0 +1,11 @@
+template_files = [] + glob([
+    "*.yaml",
+])
+
+filegroup(
+    name = "configs",
+    srcs = template_files,
+    visibility = ["//visibility:public"],
+)
+
+exports_files(template_files)

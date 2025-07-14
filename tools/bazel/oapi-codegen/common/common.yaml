@@ -1,0 +1,137 @@
+openapi: 3.0.0
+components:
+  parameters:
+    limit_param:
+      name: limit
+      in: query
+      description: Pagination details, maximum number of records to return.
+      schema:
+        type: integer
+        example: 100
+        default: 100
+        minimum: 1
+        maximum: 20000
+    last_value:
+      name: last_val
+      in: query
+      description: Pagination details, last value of the sort column on the previous page.
+      schema:
+        type: string
+    last_id:
+      name: last_id
+      in: query
+      description: Pagination details, last value of the id column on the previous page.
+      schema:
+        type: string
+    offset:
+      name: offset
+      in: query
+      description: Pagination details, offset value.
+      schema:
+        type: integer
+        example: 0
+        default: 0
+        minimum: 0
+    sort_by:
+      name: sort_by
+      in: query
+      description: Pagination details, sort column, if empty uses the id column.
+      schema:
+        type: string
+        example: modified_at
+    sort_direction:
+      name: sort_dir
+      in: query
+      description: Pagination details, sorting order.
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: asc
+    from_date:
+      name: from_date
+      in: query
+      description: Filter by date, from date.
+      schema:
+        type: string
+        format: date
+    since:
+      name: since
+      in: query
+      description: Filter by the duration, since the current date. (E.g. 1d, 1w, 1m, 1y)
+      schema:
+        type: string
+
+  schemas:
+    message:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: 'Example message'
+    error_message:
+      type: object
+      required:
+        - title
+        - detail
+        - status
+        - details
+        - request_id
+      properties:
+        title:
+          type: string
+          example: 'Error'
+        detail:
+          type: string
+          example: 'Example error message'
+        status:
+          type: integer
+          example: 400
+          minimum: 100
+          maximum: 599
+        details:
+          type: array
+        request_id:
+          type: string
+          example: '123456'
+
+  responses:
+    not_found:
+      description: 'Resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    bad_request:
+      description: 'Bad request'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    internal_server_error:
+      description: 'Internal server error'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    unauthorized:
+      description: 'Unauthorized'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    forbidden:
+      description: 'Forbidden'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
+    conflict:
+      description: 'Conflict'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error_message'
