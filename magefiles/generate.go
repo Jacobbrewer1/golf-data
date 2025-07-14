@@ -38,7 +38,7 @@ func (g Generate) Diff() error {
 	if got != "" {
 		log(slog.LevelError, "There are uncommitted changes in the generated code:")
 		fmt.Println(got)
-		return fmt.Errorf("there are uncommitted changes, please run 'mage codegen:generate' and commit the changes")
+		return fmt.Errorf("there are uncommitted changes, please run 'mage generateall' and commit the changes")
 	}
 
 	return nil
