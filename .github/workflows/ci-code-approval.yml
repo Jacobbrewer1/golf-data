@@ -62,11 +62,12 @@ jobs:
           go-version-file: 'go.mod'
           cache-dependency-path: "**/*.sum"
 
-      - name: Verify
-        run: go vet ./...
-
-      - name: Test
-        run: go test -v ./...
+      - name: Restore bazel cache
+        uses: actions/cache/restore@v4
+        with:
+          key: bazel
+          path: |
+            ~/.cache/bazel
 
       - name: Run Mage
         uses: magefile/mage-action@v3
@@ -74,34 +75,19 @@ jobs:
           version: latest
           args: deps
 
-      - name: Import secrets
-        id: import-secrets
-        uses: hashicorp/vault-action@v3
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: userpass
-          username: ${{ secrets.VAULT_USERNAME }}
-          password: ${{ secrets.VAULT_PASSWORD }}
-          secrets: |
-            ${{ secrets.VAULT_MOUNT }}/data/${{ secrets.VAULT_GCP_SA_NAME }} ${{ secrets.VAULT_GCP_SA_KEY }} | VAULT_GCP_SA_KEY ;
-
-      - name: Service Account File
-        id: service-account-file
-        run: |
-          echo '${{ steps.import-secrets.outputs.VAULT_GCP_SA_KEY }}' > ${{ github.workspace }}/gcp-sa-key.json
-
       - name: Run Mage
         uses: magefile/mage-action@v3
         with:
           version: latest
-          args: -v build:all
-        env:
-          'GOOGLE_APPLICATION_CREDENTIALS_JSON_PATH': ${{ github.workspace }}/gcp-sa-key.json
+          args: -v build test
 
-      - name: Remove Service Account File
+      - name: Save bazel cache
+        uses: actions/cache/save@v4
         if: always()
-        run: |
-          rm -f ${{ github.workspace }}/gcp-sa-key.json
+        with:
+          key: bazel
+          path: |
+            ~/.cache/bazel
 
   code-generation:
     name: "Code Generation"
@@ -115,6 +101,13 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache-dependency-path: "**/*.sum"
+
+      - name: Restore bazel cache
+        uses: actions/cache/restore@v4
+        with:
+          key: bazel
+          path: |
+            ~/.cache/bazel
 
       - name: Install deps
         uses: magefile/mage-action@v3
@@ -179,6 +172,13 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache-dependency-path: "**/*.sum"
+
+      - name: Restore bazel cache
+        uses: actions/cache/restore@v4
+        with:
+          key: bazel
+          path: |
+            ~/.cache/bazel
 
       - name: Run Mage
         uses: magefile/mage-action@v3
