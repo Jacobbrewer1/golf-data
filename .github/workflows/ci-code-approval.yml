@@ -73,12 +73,6 @@ jobs:
         uses: magefile/mage-action@v3
         with:
           version: latest
-          args: deps
-
-      - name: Run Mage
-        uses: magefile/mage-action@v3
-        with:
-          version: latest
           args: -v build test
 
       - name: Save bazel cache
@@ -108,12 +102,6 @@ jobs:
           key: bazel
           path: |
             ~/.cache/bazel
-
-      - name: Install deps
-        uses: magefile/mage-action@v3
-        with:
-          version: latest
-          args: installdeps
 
       - name: Run Mage
         uses: magefile/mage-action@v3
