@@ -1,0 +1,7 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//tools/bazel/oapi-codegen:oapi_codegen.bzl", "oapi_codegen")
+
+oapi_codegen(
+    src = ":api.yaml",
+    package = "openapi",
+)

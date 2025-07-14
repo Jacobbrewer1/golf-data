@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"sync"
 
@@ -15,6 +16,7 @@ import (
 
 type Deploy mg.Namespace
 
+// All deploys all apps in the ./cmd directory
 func (d Deploy) All(environment string) error {
 	wg := new(sync.WaitGroup)
 	multiErr := utils.NewMultiError()
@@ -42,7 +44,7 @@ func (d Deploy) All(environment string) error {
 	wg.Wait()
 
 	if multiErr.Err() != nil {
-		fmt.Println("[ERROR] Failed to deploy the apps with the following errors:")
+		log(slog.LevelError, "Errors occurred during deployment:")
 		for _, err := range multiErr.Errors() {
 			fmt.Println(err)
 		}
@@ -52,7 +54,7 @@ func (d Deploy) All(environment string) error {
 	return nil
 }
 
-// Deploy a single app
+// One deploys a single app
 func (d Deploy) One(appName, environment string) error {
 	args := []string{
 		"upgrade",
@@ -64,14 +66,9 @@ func (d Deploy) One(appName, environment string) error {
 		"--set",
 	}
 
-	tag, err := getTagFromCommit()
-	if err != nil {
-		return fmt.Errorf("failed to get tag from commit: %w", err)
-	}
+	log(slog.LevelInfo, fmt.Sprintf("Deploying %s to %s with tag %s", appName, environment, commitTag()))
 
-	fmt.Println("[INFO] Deploying", appName, "with tag", tag)
-
-	args = append(args, "image.tag="+tag)
+	args = append(args, "image.tag="+commitTag())
 
 	if err := sh.Run("helm", args...); err != nil {
 		return fmt.Errorf("failed to deploy: %w", err)

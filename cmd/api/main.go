@@ -2,21 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gorilla/mux"
 
-	"github.com/jacobbrewer1/golf-data/pkg/apis/specs/api"
-	repo "github.com/jacobbrewer1/golf-data/pkg/repositories/api"
-	apiSvc "github.com/jacobbrewer1/golf-data/pkg/services/api"
-	"github.com/jacobbrewer1/golf-data/pkg/services/api/domain"
-	"github.com/jacobbrewer1/uhttp"
-	"github.com/jacobbrewer1/utils"
 	"github.com/jacobbrewer1/web"
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/logging"
@@ -45,46 +37,46 @@ func main() {
 		web.WithDatabaseFromVault(),
 		web.WithRedisPool(),
 		web.WithDependencyBootstrap(func(ctx context.Context) error {
-			svcRepo := repo.NewRepository(a.DBConn())
-			dom := domain.NewDomain(svcRepo)
-			svc := apiSvc.NewService(dom)
+			//svcRepo := repo.NewRepository(a.DBConn())
+			//dom := domain.NewDomain(svcRepo)
+			//svc := apiSvc.NewService(dom)
+			//
+			//rateLimiter := uhttp.NewRedisRateLimiter(a.RedisPool(), 10, 25,
+			//	uhttp.WithLogger(logging.LoggerWithComponent(l, "rate-limiter")),
+			//)
 
-			rateLimiter := uhttp.NewRedisRateLimiter(a.RedisPool(), 10, 25,
-				uhttp.WithLogger(logging.LoggerWithComponent(l, "rate-limiter")),
-			)
-
-			api.RegisterUnauthedHandlers(r, svc,
-				api.WithLogger(logging.LoggerWithComponent(l, "gateway")),
-				api.WithRateLimiter(func(_ context.Context, r *http.Request) bool {
-					hostOnly := func(host string) string {
-						if host == "" {
-							return ""
-						}
-						host, _, err := net.SplitHostPort(host)
-						if err != nil {
-							a.Logger().Warn("failed to split host and port", slog.String(logging.KeyError, err.Error()))
-							return host
-						}
-						return host
-					}
-
-					host := hostOnly(r.RemoteAddr)
-
-					clientToken := r.Header.Get("X-Client-Token") // Custom header for device/app identification
-					if clientToken == "" {
-						clientToken = host // Fallback to remote address if no token is provided
-					}
-
-					agent := r.Header.Get("User-Agent") // Custom header for device identification
-					if agent == "" {
-						agent = host // Fallback to remote address if no agent is provided
-					}
-
-					key := fmt.Sprintf("client:%s:agent:%s", clientToken, agent)
-					key = utils.Sha256([]byte(key))
-					return rateLimiter.Allow(key)
-				}),
-			)
+			//api.RegisterUnauthedHandlers(r, svc,
+			//	api.WithLogger(logging.LoggerWithComponent(l, "gateway")),
+			//	api.WithRateLimiter(func(_ context.Context, r *http.Request) bool {
+			//		hostOnly := func(host string) string {
+			//			if host == "" {
+			//				return ""
+			//			}
+			//			host, _, err := net.SplitHostPort(host)
+			//			if err != nil {
+			//				a.Logger().Warn("failed to split host and port", slog.String(logging.KeyError, err.Error()))
+			//				return host
+			//			}
+			//			return host
+			//		}
+			//
+			//		host := hostOnly(r.RemoteAddr)
+			//
+			//		clientToken := r.Header.Get("X-Client-Token") // Custom header for device/app identification
+			//		if clientToken == "" {
+			//			clientToken = host // Fallback to remote address if no token is provided
+			//		}
+			//
+			//		agent := r.Header.Get("User-Agent") // Custom header for device identification
+			//		if agent == "" {
+			//			agent = host // Fallback to remote address if no agent is provided
+			//		}
+			//
+			//		key := fmt.Sprintf("client:%s:agent:%s", clientToken, agent)
+			//		key = utils.Sha256([]byte(key))
+			//		return rateLimiter.Allow(key)
+			//	}),
+			//)
 			return nil
 		}),
 		web.WithHealthCheck(

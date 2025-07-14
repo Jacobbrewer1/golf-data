@@ -16,3 +16,15 @@ gazelle(
     name = "gazelle",
     gazelle = ":gazelle-gen",
 )
+
+write_source_files(
+    name = "gen_openapi",
+    additional_update_targets = [
+        "//cmd/api/api/openapi:gen_openapi",
+    ],
+)
+
+write_source_files(
+    name = "gen_mock",
+    additional_update_targets = [],
+)
