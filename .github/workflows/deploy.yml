@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: '0' # We need all history to get the commit hash
 
@@ -78,7 +78,7 @@ jobs:
             ${{ secrets.VAULT_MOUNT }}/data/${{ secrets.VAULT_KUBE_CONFIG_NAME }} ${{ secrets.VAULT_KUBE_CONFIG_KEY }} | KUBE_CONFIG ;
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.helm-branch }}
           repository: Jacobbrewer1/supporting-charts
