@@ -6,7 +6,11 @@ import (
 
 // Set represents a mathematical set: https://en.wikipedia.org/wiki/Set_(mathematics)#
 type Set[T comparable] struct {
-	mut   *sync.RWMutex
+	// mut is a read-write mutex that ensures thread-safe access to the set.
+	mut *sync.RWMutex
+
+	// items is a map where the keys represent the elements of the set,
+	// and the values are always true to indicate the presence of an element.
 	items map[T]bool
 }
 
@@ -24,21 +28,21 @@ func NewSet[T comparable](items ...T) *Set[T] {
 	return set
 }
 
-// Add adds an item to the set.
+// Add inserts a new element into the set.
 func (s *Set[T]) Add(item T) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 	s.items[item] = true
 }
 
-// Remove removes an item from the set.
+// Remove deletes an element from the set.
 func (s *Set[T]) Remove(item T) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 	delete(s.items, item)
 }
 
-// Contains returns whether the set contains item.
+// Contains checks if the set contains the specified item.
 func (s *Set[T]) Contains(item T) bool {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
@@ -46,31 +50,32 @@ func (s *Set[T]) Contains(item T) bool {
 	return ok
 }
 
-// Difference returns the set of all things that belong to A, but not B.
+// Difference returns a new set containing elements that are in the current set (A)
+// but not in the provided set (B).
 func (s *Set[T]) Difference(b *Set[T]) *Set[T] {
-	s3 := NewSet[T]()
 	s.mut.RLock()
 	b.mut.RLock()
 	defer b.mut.RUnlock()
 	defer s.mut.RUnlock()
 
+	s3 := NewSet[T]()
 	for k := range s.items {
 		if !b.items[k] {
 			s3.Add(k)
 		}
 	}
-
 	return s3
 }
 
-// Union returns the set of all things that belong in A, in B or in both.
+// Union returns a new set containing all elements that are in either the current set (A),
+// the provided set (B), or both.
 func (s *Set[T]) Union(b *Set[T]) *Set[T] {
-	s3 := NewSet[T]()
 	s.mut.RLock()
 	b.mut.RLock()
 	defer b.mut.RUnlock()
 	defer s.mut.RUnlock()
 
+	s3 := NewSet[T]()
 	for k := range s.items {
 		s3.Add(k)
 	}
@@ -78,11 +83,10 @@ func (s *Set[T]) Union(b *Set[T]) *Set[T] {
 	for k := range b.items {
 		s3.Add(k)
 	}
-
 	return s3
 }
 
-// Each calls fn on each item of the set.
+// Each calls the provided function on each item in the set.
 func (s *Set[T]) Each(fn func(item T)) {
 	s.mut.RLock()
 	defer s.mut.RUnlock()

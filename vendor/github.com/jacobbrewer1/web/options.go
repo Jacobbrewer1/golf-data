@@ -10,6 +10,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gomodule/redigo/redis"
+	"github.com/gorilla/mux"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/spf13/viper"
@@ -28,37 +29,40 @@ import (
 	"github.com/jacobbrewer1/web/health"
 	"github.com/jacobbrewer1/web/k8s"
 	"github.com/jacobbrewer1/web/logging"
-	"github.com/jacobbrewer1/workerpool"
+	pkgsync "github.com/jacobbrewer1/web/sync"
 )
 
 const (
 	// inClusterNatsEndpoint is the default NATS endpoint for in-cluster communication.
 	inClusterNatsEndpoint = "nats://nats-headless.nats:4222"
 
-	// leaderElectionLeaseDuration is the duration that non-leader candidates will wait to force acquire leadership.
+	// leaderElectionLeaseDuration specifies the duration that non-leader candidates
+	// will wait to forcefully acquire leadership if the current leader fails to renew.
 	leaderElectionLeaseDuration = 15 * time.Second
 
-	// leaderElectionRenewDeadline is the duration that the acting leader will retry refreshing leadership before giving up.
+	// leaderElectionRenewDeadline specifies the duration that the acting leader
+	// will attempt to renew its leadership before giving up.
 	leaderElectionRenewDeadline = 10 * time.Second
 
-	// leaderElectionRetryPeriod is the duration the LeaderElector clients should wait between tries of actions.
+	// leaderElectionRetryPeriod specifies the interval between retries for leader election actions.
 	leaderElectionRetryPeriod = 2 * time.Second
 )
 
 var (
-	// ErrNoHostname is returned when the hostname is not set.
+	// ErrNoHostname is a predefined error that indicates the hostname is not set.
 	ErrNoHostname = errors.New("no hostname provided")
 )
 
-// AsyncTaskFunc is a function that runs asynchronously and takes a context.
-// The function should respect the context cancellation and return when the context is done.
-type AsyncTaskFunc = func(context.Context)
+// ContextRunnable defines a function type for tasks that can be run with a context.
+type ContextRunnable = func(context.Context)
 
-// StartOption is a function that configures the application during startup.
-// It returns an error if the configuration fails.
-type StartOption func(*App) error
+// AsyncTaskFunc defines a function type for asynchronous tasks.
+type AsyncTaskFunc = ContextRunnable
 
-// WithViperConfig is a StartOption that sets up the viper config.
+// StartOption defines a function type for configuring the application during startup.
+type StartOption = func(*App) error
+
+// WithViperConfig is a StartOption that sets up the viper configuration.
 func WithViperConfig() StartOption {
 	return func(a *App) error {
 		vip := viper.New()
@@ -72,13 +76,13 @@ func WithViperConfig() StartOption {
 }
 
 // WithConfigWatchers is a StartOption that registers functions to be called when the config file changes.
-func WithConfigWatchers(fn ...func()) StartOption {
+func WithConfigWatchers(fn ...ContextRunnable) StartOption {
 	return func(a *App) error {
 		vip := a.Viper()
 		vip.OnConfigChange(func(e fsnotify.Event) {
 			a.l.Info("Config file changed", slog.String(logging.KeyFile, e.Name))
 			for _, f := range fn {
-				f()
+				f(a.baseCtx)
 			}
 		})
 		vip.WatchConfig()
@@ -100,7 +104,7 @@ func WithVaultClient() StartOption {
 	}
 }
 
-// WithDatabaseFromVault is a StartOption that sets up the database from vault.
+// WithDatabaseFromVault is a StartOption that sets up the database connection using Vault secrets.
 func WithDatabaseFromVault() StartOption {
 	return func(a *App) error {
 		vc := a.VaultClient()
@@ -130,7 +134,7 @@ func WithDatabaseFromVault() StartOption {
 	}
 }
 
-// WithInClusterKubeClient is a StartOption that sets up the in-cluster kube client.
+// WithInClusterKubeClient is a StartOption that sets up the in-cluster Kubernetes client.
 func WithInClusterKubeClient() StartOption {
 	return func(a *App) error {
 		cfg, err := rest.InClusterConfig()
@@ -149,8 +153,9 @@ func WithInClusterKubeClient() StartOption {
 }
 
 // WithLeaderElection is a StartOption that sets up leader election using Kubernetes lease locks.
-// The lockName parameter specifies the name of the lease lock resource to be created.
-// Returns an error if the pod name is not set or if the lock name is empty.
+//
+// This function configures leader election for the application using Kubernetes' lease lock mechanism.
+// It ensures that only one instance of the application acts as the leader at any given time.
 func WithLeaderElection(lockName string) StartOption {
 	return func(a *App) error {
 		switch {
@@ -211,35 +216,49 @@ func WithLeaderElection(lockName string) StartOption {
 	}
 }
 
-// WithHealthCheck is a StartOption that sets up the health2 check.
+// WithHealthCheck is a StartOption that sets up the health check server.
 func WithHealthCheck(checks ...*health.Check) StartOption {
 	return func(a *App) error {
 		if _, exists := a.servers.Load("health"); exists {
 			return errors.New("health check server already registered")
 		}
 
-		checker, err := health.NewChecker()
+		// No grace period as we do not want to receive any traffic the moment the pod health check fails.
+		readinessChecker, err := health.NewChecker()
 		if err != nil {
 			return fmt.Errorf("error creating health checker: %w", err)
 		}
 
+		// Setting a grace period for liveness checks as Kubernetes will kill the pod
+		// if the liveness check fails. This allows for a grace period before the pod is killed.
+		livenessChecker, err := health.NewChecker(health.WithCheckerErrorGracePeriod(10 * time.Second))
+		if err != nil {
+			return fmt.Errorf("error creating liveness checker: %w", err)
+		}
+
 		for _, check := range checks {
-			if err := checker.AddCheck(check); err != nil {
+			if err := readinessChecker.AddCheck(check); err != nil {
 				return fmt.Errorf("error adding health check %s: %w", check.String(), err)
+			}
+
+			if err := livenessChecker.AddCheck(check); err != nil {
+				return fmt.Errorf("error adding liveness check %s: %w", check.String(), err)
 			}
 		}
 
+		r := mux.NewRouter()
+		r.Handle("/readyz", readinessChecker.Handler()).Methods(http.MethodGet)
+		r.Handle("/livez", livenessChecker.Handler()).Methods(http.MethodGet)
 		a.servers.Store("health", &http.Server{
-			Addr:              fmt.Sprintf(":%d", healthPort),
-			Handler:           checker.Handler(),
+			Addr:              fmt.Sprintf(":%d", HealthPort),
+			Handler:           r,
 			ReadHeaderTimeout: httpReadHeaderTimeout,
 		})
-
 		return nil
 	}
 }
 
-// WithRedisPool is a StartOption that sets up the redis pool.
+// WithRedisPool is a StartOption that sets up the Redis connection pool.
 func WithRedisPool() StartOption {
 	return func(a *App) error {
 		vip := a.Viper()
@@ -276,7 +295,7 @@ func WithRedisPool() StartOption {
 	}
 }
 
-// WithMetricsEnabled is a StartOption that enables metrics.
+// WithMetricsEnabled is a StartOption that enables or disables metrics for the application.
 func WithMetricsEnabled(metricsEnabled bool) StartOption {
 	return func(a *App) error {
 		a.metricsEnabled = metricsEnabled
@@ -284,26 +303,33 @@ func WithMetricsEnabled(metricsEnabled bool) StartOption {
 	}
 }
 
-// WithWorkerPool is a StartOption that sets up the worker pool.
-func WithWorkerPool() StartOption {
+// WithWorkerPool configures the app to instantiate a worker pool for concurrent processing of tasks.
+func WithWorkerPool(name string, size, backlog uint) StartOption {
 	return func(a *App) error {
-		wp := workerpool.New(
-			workerpool.WithDelayedStart(),
+		a.l.Info("creating worker pool",
+			"size", size,
+			"name", name,
 		)
-
-		a.workerPool = wp
+		if _, loaded := a.workerPools.LoadOrStore(
+			name,
+			pkgsync.NewWorkerPool(a.baseCtx, name, size, backlog),
+		); loaded {
+			return fmt.Errorf("worker pool of name %q already exists", name)
+		}
 		return nil
 	}
 }
 
-// WithDependencyBootstrap is a StartOption that bootstraps dependencies.
+// WithDependencyBootstrap is a StartOption that bootstraps application dependencies.
+//
+// This function allows the custom dependency bootstrapping, which is executed during the application startup process.
 func WithDependencyBootstrap(fn func(ctx context.Context) error) StartOption {
 	return func(a *App) error {
 		return fn(a.baseCtx)
 	}
 }
 
-// WithIndefiniteAsyncTask is a StartOption that sets up an indefinite async task.
+// WithIndefiniteAsyncTask is a StartOption that sets up an indefinite asynchronous task.
 func WithIndefiniteAsyncTask(name string, fn AsyncTaskFunc) StartOption {
 	return func(a *App) error {
 		a.indefiniteAsyncTasks.Store(name, fn)
@@ -311,7 +337,7 @@ func WithIndefiniteAsyncTask(name string, fn AsyncTaskFunc) StartOption {
 	}
 }
 
-// WithFixedHashBucket is a StartOption that sets up the fixed hash bucket.
+// WithFixedHashBucket is a StartOption that sets up a fixed-size hash bucket.
 func WithFixedHashBucket(size uint) StartOption {
 	return func(a *App) error {
 		hb := cache.NewFixedHashBucket(size)
@@ -337,7 +363,7 @@ func WithServiceEndpointHashBucket(appName string) StartOption {
 	}
 }
 
-// WithNatsClient is a StartOption that sets up the nats client.
+// WithNatsClient is a StartOption that sets up the NATS client.
 func WithNatsClient(target string) StartOption {
 	return func(a *App) error {
 		if target == "" {
@@ -354,12 +380,14 @@ func WithNatsClient(target string) StartOption {
 	}
 }
 
-// WithInClusterNatsClient is a StartOption that sets up the nats client with the in-cluster endpoint.
+// WithInClusterNatsClient is a StartOption that sets up the NATS client with the in-cluster endpoint.
+//
+// This function is a wrapper around `WithNatsClient` that uses the default in-cluster NATS endpoint.
 func WithInClusterNatsClient() StartOption {
 	return WithNatsClient(inClusterNatsEndpoint)
 }
 
-// WithNatsJetStream is a StartOption that sets up nats jetstream with the given stream name, retention policy, and subjects.
+// WithNatsJetStream is a StartOption that sets up NATS JetStream with the given stream name, retention policy, and subjects.
 func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPolicy, subjects []string) StartOption {
 	return func(a *App) error {
 		natsClient := a.NatsClient()
@@ -389,7 +417,11 @@ func WithNatsJetStream(streamName string, retentionPolicy jetstream.RetentionPol
 	}
 }
 
-// WithKubernetesPodInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Pod objects.
+// WithKubernetesPodInformer is a StartOption that sets up a Kubernetes Pod informer.
+//
+// This function initializes a Kubernetes SharedInformerFactory and creates an informer
+// for Kubernetes Pod objects. The informer is used to watch and cache Pod resources
+// in the Kubernetes cluster.
 func WithKubernetesPodInformer(informerOptions ...informers.SharedInformerOption) StartOption {
 	return func(a *App) error {
 		initKubernetesInformerFactory(a, informerOptions...)
@@ -402,7 +434,11 @@ func WithKubernetesPodInformer(informerOptions ...informers.SharedInformerOption
 	}
 }
 
-// WithKubernetesSecretInformer is a StartOption that initialises a Kubernetes SharedInformerFactory and informer for Kubernetes Secret objects.
+// WithKubernetesSecretInformer is a StartOption that sets up a Kubernetes Secret informer.
+//
+// This function initializes a Kubernetes SharedInformerFactory and creates an informer
+// for Kubernetes Secret objects. The informer is used to watch and cache Secret resources
+// in the Kubernetes cluster.
 func WithKubernetesSecretInformer(informerOptions ...informers.SharedInformerOption) StartOption {
 	return func(a *App) error {
 		initKubernetesInformerFactory(a, informerOptions...)
@@ -411,6 +447,23 @@ func WithKubernetesSecretInformer(informerOptions ...informers.SharedInformerOpt
 		base := a.kubernetesInformerFactory.Core().V1().Secrets()
 		a.secretInformer = base.Informer()
 		a.secretLister = base.Lister()
+		return nil
+	}
+}
+
+// WithKubernetesConfigMapInformer is a StartOption that sets up a Kubernetes ConfigMap informer.
+//
+// This function initializes a Kubernetes SharedInformerFactory and creates an informer
+// for Kubernetes ConfigMap objects. The informer is used to watch and cache ConfigMap resources
+// in the Kubernetes cluster.
+func WithKubernetesConfigMapInformer(informerOptions ...informers.SharedInformerOption) StartOption {
+	return func(a *App) error {
+		initKubernetesInformerFactory(a, informerOptions...)
+
+		a.l.Info("creating kubernetes configmap informer")
+		base := a.kubernetesInformerFactory.Core().V1().ConfigMaps()
+		a.configMapInformer = base.Informer()
+		a.configMapLister = base.Lister()
 		return nil
 	}
 }

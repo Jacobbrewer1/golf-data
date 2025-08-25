@@ -6,13 +6,15 @@ import (
 	"time"
 )
 
-// CheckFunc is a function that performs the check.
+// CheckFunc defines the signature for a health check function.
 type CheckFunc = func(ctx context.Context) error
 
-// StatusListenerFunc is a function that is called when the status of the check changes.
+// StatusListenerFunc defines the signature for a function that listens for status changes in a health check.
 type StatusListenerFunc = func(ctx context.Context, name string, state *State)
 
-// Check is a struct that represents a health check.
+// Check represents a health check with configurable parameters and state tracking.
+// It handles running health checks, managing error states, enforcing timeouts,
+// and providing notifications when health status changes.
 type Check struct {
 	// name is the name of the check.
 	name string
@@ -36,11 +38,7 @@ type Check struct {
 	state *State
 }
 
-// NewCheck creates a new Check. Every check should have a unique name.
-//
-// You are able to return custom statuses by returning a StatusError from the check function. This way you can perform
-// checks that return a status other than up or down. For example, you can return a status of "degraded" if the check
-// is partially failing. This is useful for checks that are not binary in nature.
+// NewCheck creates a new health check with the specified name, check function, and optional configuration.
 func NewCheck(name string, checkerFunc CheckFunc, options ...CheckOption) *Check {
 	c := &Check{
 		name:    name,
@@ -56,18 +54,18 @@ func NewCheck(name string, checkerFunc CheckFunc, options ...CheckOption) *Check
 	return c
 }
 
-// String returns the name of the check.
+// String returns the name of the health check.
 func (c *Check) String() string {
 	return c.name
 }
 
-// Check performs the check and updates the state of the check.
+// Check performs the health check and updates the state of the check.
 func (c *Check) Check(ctx context.Context) error {
 	if ctx == nil {
-		ctx = context.Background()
+		return errors.New("context cannot be nil")
 	}
 
-	now := timestamp()
+	now := time.Now().UTC()
 	c.state.lastCheckTime = now
 
 	var (
@@ -108,13 +106,11 @@ func (c *Check) Check(ctx context.Context) error {
 			newStatus = StatusUp // Still within fail threshold
 		}
 
-		// Handle custom status errors
-		statusErr := new(StatusError)
-		if errors.As(err, &statusErr) {
-			if !statusErr.Status.IsValid() {
-				statusErr.Status = StatusUnknown
+		if statusErr := new(StatusError); errors.As(err, &statusErr) {
+			newStatus = StatusUnknown
+			if statusErr.Status.IsValid() {
+				newStatus = statusErr.Status
 			}
-			newStatus = statusErr.Status
 		}
 
 		return err

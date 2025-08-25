@@ -1,10 +1,14 @@
 package health
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
+// CheckerOption defines a function type that modifies a Checker instance.
 type CheckerOption func(*Checker) error
 
-// WithCheckerCheck adds a single check to the checker.
+// WithCheckerCheck adds a single check to the Checker.
 func WithCheckerCheck(check *Check) CheckerOption {
 	return func(c *Checker) error {
 		if err := c.AddCheck(check); err != nil {
@@ -15,7 +19,7 @@ func WithCheckerCheck(check *Check) CheckerOption {
 	}
 }
 
-// WithCheckerChecks adds multiple checks to the checker.
+// WithCheckerChecks adds multiple checks to the Checker.
 func WithCheckerChecks(checks ...*Check) CheckerOption {
 	return func(c *Checker) error {
 		for _, check := range checks {
@@ -28,7 +32,7 @@ func WithCheckerChecks(checks ...*Check) CheckerOption {
 	}
 }
 
-// WithCheckerHTTPCodeUp sets the HTTP status code when the system is up.
+// WithCheckerHTTPCodeUp sets the HTTP status code for when the system is healthy.
 func WithCheckerHTTPCodeUp(code int) CheckerOption {
 	return func(c *Checker) error {
 		c.httpStatusCodeUp = code
@@ -36,10 +40,18 @@ func WithCheckerHTTPCodeUp(code int) CheckerOption {
 	}
 }
 
-// WithCheckerHTTPCodeDown sets the HTTP status code when the system is down.
+// WithCheckerHTTPCodeDown sets the HTTP status code for when the system is unhealthy.
 func WithCheckerHTTPCodeDown(code int) CheckerOption {
 	return func(c *Checker) error {
 		c.httpStatusCodeDown = code
+		return nil
+	}
+}
+
+// WithCheckerErrorGracePeriod sets the grace period for errors. This will ignore errors from any checks.
+func WithCheckerErrorGracePeriod(gracePeriod time.Duration) CheckerOption {
+	return func(c *Checker) error {
+		c.errorGracePeriod = gracePeriod
 		return nil
 	}
 }

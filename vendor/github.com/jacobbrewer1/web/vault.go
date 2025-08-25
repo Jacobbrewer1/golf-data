@@ -11,13 +11,19 @@ import (
 	"github.com/jacobbrewer1/web/k8s"
 )
 
+// defaultVaultAddr is the default address of the Vault server.
+//
+// This constant defines the default URL for the active Vault server,
+// which is used when no custom address is provided in the configuration.
 const (
 	// defaultVaultAddr is the default address of the Vault server
 	defaultVaultAddr = "http://vault-active.vault:8200"
 )
 
-// VaultClient creates and configures a new vault client using the provided context, logger, and viper configuration.
-// Returns the configured client or an error if the setup fails.
+// VaultClient creates and configures a new Vault client.
+//
+// Note:
+//   - This is defined as a variable to allow users of the package to override it if needed.
 var VaultClient = func(ctx context.Context, l *slog.Logger, v *viper.Viper) (vaulty.Client, error) {
 	addr := v.GetString("vault.address")
 	if addr == "" {

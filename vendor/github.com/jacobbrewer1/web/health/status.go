@@ -10,26 +10,34 @@ import (
 	"github.com/jacobbrewer1/web/logging"
 )
 
+// Status represents the health status of a service.
 type Status int
 
 const (
 	// StatusDown indicates that the service is unhealthy.
+	//
+	// This status is used when the service is not operational and cannot
+	// handle requests.
 	StatusDown Status = iota
 
 	// StatusDegraded indicates that the service is degraded.
 	//
-	// This is different to StatusDown in that the service is still operational,
-	// but not performing at its best.
-	// For example, a service may be degraded if it is running at 80% CPU usage,
-	// but still responding to requests.
-	// This is useful for services that are running in a cluster, where one or
-	// more nodes may be degraded, but the service as a whole is still operational.
+	// This status is used when the service is still operational but not
+	// performing optimally. For example, a service may be considered degraded
+	// if it is under high load but still responding to requests. This is
+	// particularly useful in clustered environments where some nodes may be
+	// degraded, but the overall service remains operational.
 	StatusDegraded
 
 	// StatusUp indicates that the service is healthy.
+	//
+	// This status is used when the service is fully operational and performing
+	// as expected.
 	StatusUp
 
 	// StatusUnknown indicates that the service status is unknown.
+	//
+	// This status is used when the health of the service cannot be determined.
 	StatusUnknown
 )
 
@@ -71,14 +79,35 @@ func (s Status) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// StandardStatusListener is a standard implementation of the StatusListenerFunc that logs the
-// status change to the provided logger.
+// UnmarshalJSON unmarshals the JSON data into a Status.
+func (s *Status) UnmarshalJSON(data []byte) error {
+	var statusStr string
+	if err := json.Unmarshal(data, &statusStr); err != nil {
+		return err
+	}
+
+	switch statusStr {
+	case "up":
+		*s = StatusUp
+	case "down":
+		*s = StatusDown
+	case "degraded":
+		*s = StatusDegraded
+	case "unknown":
+		*s = StatusUnknown
+	default:
+		return fmt.Errorf("%s is not a valid status", statusStr)
+	}
+	return nil
+}
+
+// StandardStatusListener creates a StatusListenerFunc that logs status changes.
 //
-// Note: This is not implemented into the health check itself and you will need to
-// implement this yourself if you want to use it. This can be done by using the
-// WithCheckOnStatusChange option when creating a new check.
+// This function returns a StatusListenerFunc, which logs the health check's status changes
+// using the provided logger. It is a standard implementation for monitoring and logging
+// health check status transitions.
 //
-// Example:
+// Example usage:
 //
 //	health.NewCheck("example", func(ctx context.Context) error {
 //		return nil
