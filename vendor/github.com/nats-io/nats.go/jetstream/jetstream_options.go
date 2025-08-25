@@ -31,7 +31,7 @@ func (fn pullOptFunc) configureMessages(opts *consumeOpts) error {
 // WithClientTrace enables request/response API calls tracing.
 func WithClientTrace(ct *ClientTrace) JetStreamOpt {
 	return func(opts *JetStreamOptions) error {
-		opts.clientTrace = ct
+		opts.ClientTrace = ct
 		return nil
 	}
 }
@@ -419,11 +419,16 @@ func (nMsgs StopAfter) configureMessages(opts *consumeOpts) error {
 // encountered while consuming messages It will be invoked for both terminal
 // (Consumer Deleted, invalid request body) and non-terminal (e.g. missing
 // heartbeats) errors.
-func ConsumeErrHandler(cb ConsumeErrHandlerFunc) PullConsumeOpt {
-	return pullOptFunc(func(cfg *consumeOpts) error {
-		cfg.ErrHandler = cb
-		return nil
-	})
+type ConsumeErrHandler ConsumeErrHandlerFunc
+
+func (c ConsumeErrHandler) configureConsume(opts *consumeOpts) error {
+	opts.ErrHandler = c
+	return nil
+}
+
+func (c ConsumeErrHandler) configurePushConsume(opts *pushConsumeOpts) error {
+	opts.ErrHandler = c
+	return nil
 }
 
 // WithMessagesErrOnMissingHeartbeat sets whether a missing heartbeat error
@@ -578,6 +583,21 @@ func WithExpectLastSequence(seq uint64) PublishOpt {
 func WithExpectLastSequencePerSubject(seq uint64) PublishOpt {
 	return func(opts *pubOpts) error {
 		opts.lastSubjectSeq = &seq
+		return nil
+	}
+}
+
+// WithExpectLastSequenceForSubject sets the sequence and subject for which the
+// last sequence number should be checked. If the last message on a subject
+// has a different sequence number server will reject the message and publish
+// will fail.
+func WithExpectLastSequenceForSubject(seq uint64, subject string) PublishOpt {
+	return func(opts *pubOpts) error {
+		if subject == "" {
+			return fmt.Errorf("%w: subject cannot be empty", ErrInvalidOption)
+		}
+		opts.lastSubjectSeq = &seq
+		opts.lastSubject = subject
 		return nil
 	}
 }

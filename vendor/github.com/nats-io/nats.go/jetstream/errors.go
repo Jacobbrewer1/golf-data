@@ -118,6 +118,11 @@ var (
 	// does not exist.
 	ErrConsumerNotFound JetStreamError = &jsError{apiErr: &APIError{ErrorCode: JSErrCodeConsumerNotFound, Description: "consumer not found", Code: 404}}
 
+	// ErrConsumerCreationResponseEmpty is an error returned when the response from the server
+	// when creating a consumer is empty. This means that the state of the consumer is unknown and
+	// the consumer may not have been created successfully.
+	ErrConsumerCreationResponseEmpty JetStreamError = &jsError{message: "consumer creation response is empty"}
+
 	// ErrConsumerExists is returned when attempting to create a consumer with
 	// CreateConsumer but a consumer with given name already exists.
 	ErrConsumerExists JetStreamError = &jsError{apiErr: &APIError{ErrorCode: JSErrCodeConsumerExists, Description: "consumer already exists", Code: 400}}
@@ -160,6 +165,18 @@ var (
 	// ErrConsumerNotFound is an error returned when consumer with given name
 	// does not exist.
 	ErrConsumerNameAlreadyInUse JetStreamError = &jsError{message: "consumer name already in use"}
+
+	// ErrNotPullConsumer is returned when attempting to fetch or create pull
+	// consumer and the returned consumer is a push consumer.
+	ErrNotPullConsumer JetStreamError = &jsError{message: "consumer is not a pull consumer"}
+
+	// ErrNotPushConsumer is returned when attempting to fetch or create push
+	// consumer and the returned consumer is a pull consumer.
+	ErrNotPushConsumer JetStreamError = &jsError{message: "consumer is not a push consumer"}
+
+	// ErrConsumerAlreadyConsuming is returned when attempting to consume from
+	// the same push consumer more than once.
+	ErrConsumerAlreadyConsuming JetStreamError = &jsError{message: "consumer is already consuming"}
 
 	// ErrInvalidJSAck is returned when JetStream ack from message publish is
 	// invalid.
@@ -259,6 +276,14 @@ var (
 	// closed iterator.
 	ErrMsgIteratorClosed JetStreamError = &jsError{message: "messages iterator closed"}
 
+	// ErrConnectionClosed is returned when JetStream operations fail due to
+	// underlying connection being closed.
+	ErrConnectionClosed JetStreamError = &jsError{message: "connection closed"}
+
+	// ErrServerShutdown is returned when pull request fails due to server
+	// shutdown.
+	ErrServerShutdown JetStreamError = &jsError{message: "server shutdown"}
+
 	// ErrOrderedConsumerReset is returned when resetting ordered consumer fails
 	// due to too many attempts.
 	ErrOrderedConsumerReset JetStreamError = &jsError{message: "recreating ordered consumer"}
@@ -329,6 +354,14 @@ var (
 
 	// ErrNoKeysFound is returned when no keys are found.
 	ErrNoKeysFound JetStreamError = &jsError{message: "no keys found"}
+
+	// ErrTTLOnDeleteNotSupported is returned when attempting to set a TTL
+	// on a delete operation.
+	ErrTTLOnDeleteNotSupported JetStreamError = &jsError{message: "TTL is not supported on delete"}
+
+	// ErrLimitMarkerTTLNotSupported is returned when the connected jetstream API
+	// does not support setting the LimitMarkerTTL.
+	ErrLimitMarkerTTLNotSupported JetStreamError = &jsError{message: "limit marker TTLs not supported by server"}
 
 	// ErrObjectConfigRequired is returned when attempting to create an object
 	// without a config.
