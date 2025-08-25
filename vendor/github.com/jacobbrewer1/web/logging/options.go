@@ -2,16 +2,17 @@ package logging
 
 import "log/slog"
 
-type Option func(l *slog.Logger)
+// Option defines a function type that modifies a slog.Logger instance.
+type Option = func(l *slog.Logger)
 
-// WithDefaultLogger is a LoggingOption that sets up the default logger.
+// WithDefaultLogger is a LoggingOption that sets the provided logger as the default logger.
 func WithDefaultLogger() Option {
 	return func(l *slog.Logger) {
 		slog.SetDefault(l)
 	}
 }
 
-// WithAppName is a LoggingOption that sets up the application name for the logger.
+// WithAppName is a LoggingOption that adds the application name to the logger.
 func WithAppName(appName string) Option {
 	return func(l *slog.Logger) {
 		*l = *l.With(
@@ -20,7 +21,7 @@ func WithAppName(appName string) Option {
 	}
 }
 
-// WithComponent is a LoggingOption that sets up the component for the logger.
+// WithComponent is a LoggingOption that adds a component name to the logger.
 func WithComponent(component string) Option {
 	return func(l *slog.Logger) {
 		*l = *LoggerWithComponent(l, component)

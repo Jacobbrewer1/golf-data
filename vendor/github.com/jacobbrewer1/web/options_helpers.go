@@ -6,8 +6,10 @@ import (
 	"k8s.io/client-go/informers"
 )
 
-// initKubernetesInformerFactory initializes the Kubernetes SharedInformerFactory if not already initialized.
-// It sets up the factory with the given informer options and the application's Kubernetes client.
+// initKubernetesInformerFactory initializes the Kubernetes SharedInformerFactory if it is not already initialized.
+//
+// This function sets up a SharedInformerFactory for the application using the provided Kubernetes client
+// and informer options.
 func initKubernetesInformerFactory(a *App, informerOptions ...informers.SharedInformerOption) {
 	// Set up an informer factory if one does not exist.
 	if a.kubernetesInformerFactory != nil {

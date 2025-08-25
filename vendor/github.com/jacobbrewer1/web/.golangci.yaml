@@ -16,6 +16,7 @@ linters:
     - testifylint
     - thelper
     - tparallel
+    - importas
   settings:
     goconst:
       ignore-calls: true
@@ -80,9 +81,8 @@ linters:
           exclude:
             - ""
     sloglint:
-      attr-only: true
+#      attr-only: true
       static-msg: true
-      no-raw-keys: true
       key-naming-case: snake
       forbidden-keys:
         - time
@@ -93,6 +93,34 @@ linters:
       args-on-sep-lines: true
     testifylint:
       enable-all: true
+    importas:
+      alias:
+        - pkg: github.com/jacobbrewer1/web/cache
+          alias: pkgcache
+        - pkg: github.com/jacobbrewer1/web/slices
+          alias: pkgslices
+        - pkg: github.com/jacobbrewer1/web/sync
+          alias: pkgsync
+        - pkg: k8s.io/client-go/listers/core/v1
+          alias: listersv1
+        - pkg: k8s.io/api/core/v1
+          alias: corev1
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: metav1
+        - pkg: k8s.io/api/apps/v1
+          alias: appsv1
+        - pkg: k8s.io/apimachinery/pkg/labels
+          alias: k8slabels
+        - pkg: k8s.io/apimachinery/pkg/api/errors
+          alias: k8serrors
+        - pkg: k8s.io/api/events/v1
+          alias: eventsv1
+        - pkg: k8s.io/apimachinery/pkg/types
+          alias: k8stypes
+        - pkg: k8s.io/client-go/tools/cache
+          alias: k8scache
+        - pkg: github.com/oapi-codegen/runtime/types
+          alias: oapi
   exclusions:
     generated: lax
     presets:

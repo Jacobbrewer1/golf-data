@@ -7,6 +7,14 @@ import (
 	"strings"
 )
 
+const (
+	// bazelGazellePrefix is a constant used to identify the prefix added by Bazel's Gazelle tool.
+	//
+	// This prefix is used in paths to indicate dependencies managed by Gazelle.
+	// It is typically used to trim or process paths in logging or other operations.
+	bazelGazellePrefix = "gazelle~~go_deps~"
+)
+
 // NewLogger creates a new logger with the default configuration.
 func NewLogger(opts ...Option) *slog.Logger {
 	return NewLoggerWithWriter(os.Stdout, opts...)
@@ -36,52 +44,42 @@ func LoggerWithComponent(l *slog.Logger, component string) *slog.Logger {
 	)
 }
 
-// replaceAttrs is a slog.HandlerOptions.ReplaceAttr function that replaces some attributes.
+// replaceAttrs simplifies and adjusts attributes for logging.
+//
+// This function processes a given slog.Attr and modifies its value based on specific rules:
+//   - If the attribute key matches slog.SourceKey, the value is treated as a file path and adjusted.
+//   - Converts absolute file paths to relative paths by keeping only the last two segments.
+//   - Removes curly braces from the value for compatibility with logstash.
+//   - Handles Bazel-compiled paths by extracting and simplifying the repository name and path.
 func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 	if a.Key == slog.SourceKey {
 		valueStr := a.Value.String()
 
-		// Cut the source file to a relative path.
-		v := strings.Split(valueStr, "/")
-		idx := len(v) - 2
-		if idx < 0 {
-			idx = 0
+		// Convert source file path to a relative path.
+		parts := strings.Split(valueStr, "/")
+		if len(parts) > 2 {
+			valueStr = strings.Join(parts[len(parts)-2:], "/")
 		}
-		valueStr = strings.Join(v[idx:], "/")
 
-		// Remove any curly braces from the source file. This is needed for the logstash parser.
+		// Remove curly braces for compatibility with logstash.
 		valueStr = strings.ReplaceAll(valueStr, "{", "")
 		valueStr = strings.ReplaceAll(valueStr, "}", "")
 
-		// Is the binary compiled with Bazel? We need to trim the path even more than that.
-		// Example of source file at this point:
-		// "gazelle~~go_deps~com_github_jacobbrewer1_web/app.go 439" need to be trimmed to web/app.go
+		// Handle Bazel-compiled paths.
 		if strings.Contains(valueStr, bazelGazellePrefix) {
-			v := strings.Split(valueStr, bazelGazellePrefix)
-			if len(v) > 1 {
-				// Extract everything after the gazelle~~go_deps~ prefix
-				path := v[1]
-
-				// Handle the repository name format (com_github_jacobbrewer1_web -> web)
-				parts := strings.Split(path, "/")
-				if len(parts) > 0 {
-					repoNameParts := strings.Split(parts[0], "_")
-					if len(repoNameParts) > 0 {
-						// Take the last part of the repo name
-						shortName := repoNameParts[len(repoNameParts)-1]
-						// Reconstruct the path with the short name
-						newPath := shortName
-						if len(parts) > 1 {
-							newPath += "/" + strings.Join(parts[1:], "/")
-						}
-						valueStr = newPath
-					}
+			trimmedPath := strings.SplitN(valueStr, bazelGazellePrefix, 2)[1]
+			pathParts := strings.Split(trimmedPath, "/")
+			if len(pathParts) > 0 {
+				repoParts := strings.Split(pathParts[0], "_")
+				shortName := repoParts[len(repoParts)-1]
+				valueStr = shortName
+				if len(pathParts) > 1 {
+					valueStr += "/" + strings.Join(pathParts[1:], "/")
 				}
 			}
 		}
 
 		a.Value = slog.StringValue(valueStr)
 	}
-
 	return a
 }

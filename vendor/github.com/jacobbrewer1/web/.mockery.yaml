@@ -1,5 +1,0 @@
-all: true
-inpackage: true
-recursive: true
-exclude: vendor
-disable-version-string: true
