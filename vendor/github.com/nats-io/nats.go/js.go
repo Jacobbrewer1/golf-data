@@ -348,7 +348,7 @@ type featureFlags struct {
 }
 
 // UseLegacyDurableConsumers makes JetStream use the legacy (pre nats-server v2.9.0) subjects for consumer creation.
-// If this option is used when creating JetStremContext, $JS.API.CONSUMER.DURABLE.CREATE.<stream>.<consumer> will be used
+// If this option is used when creating JetStreamContext, $JS.API.CONSUMER.DURABLE.CREATE.<stream>.<consumer> will be used
 // to create a consumer with Durable provided, rather than $JS.API.CONSUMER.CREATE.<stream>.<consumer>.
 func UseLegacyDurableConsumers() JSOpt {
 	return jsOptFn(func(opts *jsOpts) error {
@@ -2836,6 +2836,10 @@ func (sub *Subscription) ConsumerInfo() (*ConsumerInfo, error) {
 	sub.mu.Lock()
 	// TODO(dlc) - Better way to mark especially if we attach.
 	if sub.jsi == nil || sub.jsi.consumer == _EMPTY_ {
+		if sub.jsi.ordered {
+			sub.mu.Unlock()
+			return nil, ErrConsumerInfoOnOrderedReset
+		}
 		sub.mu.Unlock()
 		return nil, ErrTypeSubscription
 	}
