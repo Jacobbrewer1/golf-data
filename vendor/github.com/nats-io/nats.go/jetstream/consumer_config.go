@@ -98,7 +98,8 @@ type (
 		PinnedTS time.Time `json:"pinned_ts,omitempty"`
 	}
 
-	// ConsumerConfig is the configuration of a JetStream consumer.
+	// ConsumerConfig represents the configuration of a JetStream consumer,
+	// encompassing both push and pull consumer settings
 	ConsumerConfig struct {
 		// Name is an optional name for the consumer. If not set, one is
 		// generated automatically.
@@ -253,6 +254,26 @@ type (
 
 		// PriorityGroups is a list of priority groups this consumer supports.
 		PriorityGroups []string `json:"priority_groups,omitempty"`
+
+		// Fields specific for push consumers:
+
+		// DeliverSubject is the subject to deliver messages to for push consumers
+		DeliverSubject string `json:"deliver_subject,omitempty"`
+
+		// DeliverGroup is the group name for push consumers
+		DeliverGroup string `json:"deliver_group,omitempty"`
+
+		// FlowControl is a flag to enable flow control for the consumer.
+		// When set, server will regularly send an empty message with Status
+		// header 100 and a reply subject, consumers must reply to these
+		// messages to control the rate of message delivery
+		FlowControl bool `json:"flow_control,omitempty"`
+
+		// IdleHeartbeat enables push consumer idle heartbeat messages.
+		// If the Consumer is idle for more than the set value, an empty message
+		// with Status header 100 will be sent indicating the consumer is still
+		// alive.
+		IdleHeartbeat time.Duration `json:"idle_heartbeat,omitempty"`
 	}
 
 	// OrderedConsumerConfig is the configuration of an ordered JetStream
@@ -304,6 +325,12 @@ type (
 		// associating metadata on the consumer. This feature requires
 		// nats-server v2.10.0 or later.
 		Metadata map[string]string `json:"metadata,omitempty"`
+
+		// NamePrefix is an optional custom prefix for the consumer name.
+		// If provided, ordered consumer names will be generated as:
+		// {NamePrefix}_{sequence_number} (e.g., "custom_1", "custom_2").
+		// If not provided, a unique ID (NUID) will be used as the prefix.
+		NamePrefix string `json:"-"`
 	}
 
 	// DeliverPolicy determines from which point to start delivering messages.
@@ -341,6 +368,11 @@ const (
 	// restricting when a consumer will receive messages based on the number of
 	// pending messages or acks.
 	PriorityPolicyOverflow
+
+	// PriorityPolicyPrioritized is the priority policy that allows for the
+	// server to deliver messages to clients based on their priority (instead
+	// of round-robin). Requires nats-server v2.12.0 or later.
+	PriorityPolicyPrioritized
 )
 
 func (p *PriorityPolicy) UnmarshalJSON(data []byte) error {
@@ -351,6 +383,8 @@ func (p *PriorityPolicy) UnmarshalJSON(data []byte) error {
 		*p = PriorityPolicyPinned
 	case jsonString("overflow"):
 		*p = PriorityPolicyOverflow
+	case jsonString("prioritized"):
+		*p = PriorityPolicyPrioritized
 	default:
 		return fmt.Errorf("nats: can not unmarshal %q", data)
 	}
@@ -365,6 +399,8 @@ func (p PriorityPolicy) MarshalJSON() ([]byte, error) {
 		return json.Marshal("pinned_client")
 	case PriorityPolicyOverflow:
 		return json.Marshal("overflow")
+	case PriorityPolicyPrioritized:
+		return json.Marshal("prioritized")
 	}
 	return nil, fmt.Errorf("nats: unknown priority policy %v", p)
 }

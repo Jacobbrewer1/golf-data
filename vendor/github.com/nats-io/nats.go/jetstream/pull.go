@@ -14,6 +14,7 @@
 package jetstream
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,10 +33,12 @@ type (
 	// MessagesContext supports iterating over a messages on a stream.
 	// It is returned by [Consumer.Messages] method.
 	MessagesContext interface {
-		// Next retrieves next message on a stream. It will block until the next
-		// message is available. If the context is canceled, Next will return
-		// ErrMsgIteratorClosed error.
-		Next() (Msg, error)
+		// Next retrieves next message on a stream. If MessagesContext is closed
+		// (either stopped or drained), Next will return ErrMsgIteratorClosed
+		// error. An optional timeout or context can be provided using NextOpt
+		// options. If none are provided, Next will block indefinitely until a
+		// message is available, iterator is closed or a heartbeat error occurs.
+		Next(opts ...NextOpt) (Msg, error)
 
 		// Stop unsubscribes from the stream and cancels subscription. Calling
 		// Next after calling Stop will return ErrMsgIteratorClosed error.
@@ -92,15 +95,18 @@ type (
 	}
 
 	pullRequest struct {
-		Expires       time.Duration `json:"expires,omitempty"`
-		Batch         int           `json:"batch,omitempty"`
-		MaxBytes      int           `json:"max_bytes,omitempty"`
-		NoWait        bool          `json:"no_wait,omitempty"`
-		Heartbeat     time.Duration `json:"idle_heartbeat,omitempty"`
-		MinPending    int64         `json:"min_pending,omitempty"`
-		MinAckPending int64         `json:"min_ack_pending,omitempty"`
-		PinID         string        `json:"id,omitempty"`
-		Group         string        `json:"group,omitempty"`
+		Expires       time.Duration   `json:"expires,omitempty"`
+		Batch         int             `json:"batch,omitempty"`
+		MaxBytes      int             `json:"max_bytes,omitempty"`
+		NoWait        bool            `json:"no_wait,omitempty"`
+		Heartbeat     time.Duration   `json:"idle_heartbeat,omitempty"`
+		MinPending    int64           `json:"min_pending,omitempty"`
+		MinAckPending int64           `json:"min_ack_pending,omitempty"`
+		PinID         string          `json:"id,omitempty"`
+		Group         string          `json:"group,omitempty"`
+		Priority      uint8           `json:"priority,omitempty"`
+		ctx           context.Context `json:"-"`
+		maxWaitSet    bool            `json:"-"`
 	}
 
 	consumeOpts struct {
@@ -110,9 +116,10 @@ type (
 		LimitSize               bool
 		MinPending              int64
 		MinAckPending           int64
+		Priority                uint8
 		Group                   string
 		Heartbeat               time.Duration
-		ErrHandler              ConsumeErrHandlerFunc
+		ErrHandler              ConsumeErrHandler
 		ReportMissingHeartbeats bool
 		ThresholdMessages       int
 		ThresholdBytes          int
@@ -129,6 +136,7 @@ type (
 		consumer          *pullConsumer
 		subscription      *nats.Subscription
 		msgs              chan *nats.Msg
+		msgsClosed        atomic.Uint32
 		errs              chan error
 		pending           pendingMsgs
 		hbMonitor         *hbMonitor
@@ -166,6 +174,16 @@ type (
 	hbMonitor struct {
 		timer *time.Timer
 		sync.Mutex
+	}
+
+	// NextOpt is an option for configuring the behavior of MessagesContext.Next.
+	NextOpt interface {
+		configureNext(*nextOpts)
+	}
+
+	nextOpts struct {
+		timeout time.Duration
+		ctx     context.Context
 	}
 )
 
@@ -222,7 +240,7 @@ func (p *pullConsumer) Consume(handler MessageHandler, opts ...PullConsumeOpt) (
 		fetchNext:   make(chan *pullRequest, 1),
 		consumeOpts: consumeOpts,
 	}
-	sub.connStatusChanged = p.js.conn.StatusChanged(nats.CONNECTED, nats.RECONNECTING)
+	sub.connStatusChanged = p.js.conn.StatusChanged(nats.CONNECTED, nats.RECONNECTING, nats.CLOSED)
 
 	sub.hbMonitor = sub.scheduleHeartbeatCheck(consumeOpts.Heartbeat)
 
@@ -314,6 +332,7 @@ func (p *pullConsumer) Consume(handler MessageHandler, opts ...PullConsumeOpt) (
 		Heartbeat:     consumeOpts.Heartbeat,
 		MinPending:    consumeOpts.MinPending,
 		MinAckPending: consumeOpts.MinAckPending,
+		Priority:      consumeOpts.Priority,
 		Group:         consumeOpts.Group,
 		PinID:         p.getPinID(),
 	}, subject); err != nil {
@@ -332,13 +351,13 @@ func (p *pullConsumer) Consume(handler MessageHandler, opts ...PullConsumeOpt) (
 				if !ok {
 					continue
 				}
-				if status == nats.RECONNECTING {
+				switch status {
+				case nats.RECONNECTING:
 					if sub.hbMonitor != nil {
 						sub.hbMonitor.Stop()
 					}
 					isConnected = false
-				}
-				if status == nats.CONNECTED {
+				case nats.CONNECTED:
 					sub.Lock()
 					if !isConnected {
 						isConnected = true
@@ -353,6 +372,7 @@ func (p *pullConsumer) Consume(handler MessageHandler, opts ...PullConsumeOpt) (
 							Heartbeat:     sub.consumeOpts.Heartbeat,
 							MinPending:    sub.consumeOpts.MinPending,
 							MinAckPending: sub.consumeOpts.MinAckPending,
+							Priority:      sub.consumeOpts.Priority,
 							Group:         sub.consumeOpts.Group,
 							PinID:         p.getPinID(),
 						}
@@ -362,6 +382,9 @@ func (p *pullConsumer) Consume(handler MessageHandler, opts ...PullConsumeOpt) (
 						sub.resetPendingMsgs()
 					}
 					sub.Unlock()
+
+				case nats.CLOSED:
+					sub.errs <- ErrConnectionClosed
 				}
 			case err := <-sub.errs:
 				sub.Lock()
@@ -380,6 +403,7 @@ func (p *pullConsumer) Consume(handler MessageHandler, opts ...PullConsumeOpt) (
 						Heartbeat:     sub.consumeOpts.Heartbeat,
 						MinPending:    sub.consumeOpts.MinPending,
 						MinAckPending: sub.consumeOpts.MinAckPending,
+						Priority:      sub.consumeOpts.Priority,
 						Group:         sub.consumeOpts.Group,
 						PinID:         p.getPinID(),
 					}
@@ -389,6 +413,9 @@ func (p *pullConsumer) Consume(handler MessageHandler, opts ...PullConsumeOpt) (
 					sub.resetPendingMsgs()
 				}
 				sub.Unlock()
+				if errors.Is(err, ErrConnectionClosed) {
+					sub.Stop()
+				}
 			case <-sub.done:
 				return
 			}
@@ -462,6 +489,7 @@ func (s *pullSubscription) checkPending() {
 				Group:         s.consumeOpts.Group,
 				MinPending:    s.consumeOpts.MinPending,
 				MinAckPending: s.consumeOpts.MinAckPending,
+				Priority:      s.consumeOpts.Priority,
 			}
 
 			s.pending.msgCount = s.consumeOpts.MaxMessages
@@ -524,7 +552,7 @@ func (p *pullConsumer) Messages(opts ...PullMessagesOpt) (MessagesContext, error
 				// in Next
 				p.subs.Delete(sid)
 			}
-			close(msgs)
+			sub.closeMsgs()
 		}
 	}(sub.id))
 
@@ -560,15 +588,44 @@ var (
 	errDisconnected = errors.New("disconnected")
 )
 
-// Next retrieves next message on a stream. It will block until the next
-// message is available. If the context is canceled, Next will return
-// ErrMsgIteratorClosed error.
-func (s *pullSubscription) Next() (Msg, error) {
+// Next retrieves next message on a stream. If MessagesContext is closed
+// (either stopped or drained), Next will return ErrMsgIteratorClosed
+// error. An optional timeout or context can be provided using NextOpt
+// options. If none are provided, Next will block indefinitely until a
+// message is available, iterator is closed or a heartbeat error occurs.
+func (s *pullSubscription) Next(opts ...NextOpt) (Msg, error) {
+	var nextOpts nextOpts
+	for _, opt := range opts {
+		opt.configureNext(&nextOpts)
+	}
+
+	if nextOpts.timeout > 0 && nextOpts.ctx != nil {
+		return nil, fmt.Errorf("%w: cannot specify both NextMaxWait and NextContext", ErrInvalidOption)
+	}
+
+	// Create timeout channel if needed
+	var timeoutCh <-chan time.Time
+	if nextOpts.timeout > 0 {
+		timer := time.NewTimer(nextOpts.timeout)
+		defer timer.Stop()
+		timeoutCh = timer.C
+	}
+
+	// Use context if provided
+	var ctxDone <-chan struct{}
+	if nextOpts.ctx != nil {
+		ctxDone = nextOpts.ctx.Done()
+	}
+
 	s.Lock()
 	defer s.Unlock()
 	drainMode := s.draining.Load() == 1
 	closed := s.closed.Load() == 1
 	if closed && !drainMode {
+		// Check if iterator was closed due to connection closure
+		if s.consumer.js.conn.IsClosed() {
+			return nil, fmt.Errorf("%w: %w", ErrMsgIteratorClosed, ErrConnectionClosed)
+		}
 		return nil, ErrMsgIteratorClosed
 	}
 	hbMonitor := s.scheduleHeartbeatCheck(s.consumeOpts.Heartbeat)
@@ -592,6 +649,10 @@ func (s *pullSubscription) Next() (Msg, error) {
 				// if msgs channel is closed, it means that subscription was either drained or stopped
 				s.consumer.subs.Delete(s.id)
 				s.draining.CompareAndSwap(1, 0)
+				// Check if iterator was closed due to connection closure
+				if s.consumer.js.conn.IsClosed() {
+					return nil, fmt.Errorf("%w: %w", ErrMsgIteratorClosed, ErrConnectionClosed)
+				}
 				return nil, ErrMsgIteratorClosed
 			}
 			if hbMonitor != nil {
@@ -646,6 +707,10 @@ func (s *pullSubscription) Next() (Msg, error) {
 				}
 				isConnected = false
 			}
+		case <-timeoutCh:
+			return nil, nats.ErrTimeout
+		case <-ctxDone:
+			return nil, nextOpts.ctx.Err()
 		}
 	}
 }
@@ -687,15 +752,15 @@ func (s *pullSubscription) handleStatusMsg(msg *nats.Msg, msgErr error) error {
 }
 
 func (hb *hbMonitor) Stop() {
-	hb.Mutex.Lock()
+	hb.Lock()
 	hb.timer.Stop()
-	hb.Mutex.Unlock()
+	hb.Unlock()
 }
 
 func (hb *hbMonitor) Reset(dur time.Duration) {
-	hb.Mutex.Lock()
+	hb.Lock()
 	hb.timer.Reset(dur)
-	hb.Mutex.Unlock()
+	hb.Unlock()
 }
 
 // Stop unsubscribes from the stream and cancels subscription. Calling
@@ -765,6 +830,11 @@ func (p *pullConsumer) Fetch(batch int, opts ...FetchOpt) (MessageBatch, error) 
 			return nil, err
 		}
 	}
+
+	if req.ctx != nil && req.maxWaitSet {
+		return nil, fmt.Errorf("%w: cannot specify both FetchContext and FetchMaxWait", ErrInvalidOption)
+	}
+
 	// if heartbeat was not explicitly set, set it to 5 seconds for longer pulls
 	// and disable it for shorter pulls
 	if req.Heartbeat == unset {
@@ -794,6 +864,11 @@ func (p *pullConsumer) FetchBytes(maxBytes int, opts ...FetchOpt) (MessageBatch,
 			return nil, err
 		}
 	}
+
+	if req.ctx != nil && req.maxWaitSet {
+		return nil, fmt.Errorf("%w: cannot specify both FetchContext and FetchMaxWait", ErrInvalidOption)
+	}
+
 	// if heartbeat was not explicitly set, set it to 5 seconds for longer pulls
 	// and disable it for shorter pulls
 	if req.Heartbeat == unset {
@@ -848,6 +923,13 @@ func (p *pullConsumer) fetch(req *pullRequest) (MessageBatch, error) {
 
 	var receivedMsgs, receivedBytes int
 	hbTimer := sub.scheduleHeartbeatCheck(req.Heartbeat)
+
+	// Use context if provided
+	var ctxDone <-chan struct{}
+	if req.ctx != nil {
+		ctxDone = req.ctx.Done()
+	}
+
 	go func(res *fetchResult) {
 		defer sub.subscription.Unsubscribe()
 		defer close(res.msgs)
@@ -905,6 +987,12 @@ func (p *pullConsumer) fetch(req *pullRequest) (MessageBatch, error) {
 				return
 			case <-time.After(req.Expires + 1*time.Second):
 				res.Lock()
+				res.done = true
+				res.Unlock()
+				return
+			case <-ctxDone:
+				res.Lock()
+				res.err = req.ctx.Err()
 				res.done = true
 				res.Unlock()
 				return
@@ -968,6 +1056,12 @@ func (s *pullSubscription) pullMessages(subject string) {
 			s.cleanup()
 			return
 		}
+	}
+}
+
+func (s *pullSubscription) closeMsgs() {
+	if s.msgsClosed.CompareAndSwap(0, 1) {
+		close(s.msgs)
 	}
 }
 
@@ -1109,7 +1203,7 @@ func (consumeOpts *consumeOpts) setDefaults(ordered bool) error {
 		}
 	}
 	if consumeOpts.Heartbeat > consumeOpts.Expires/2 {
-		return errors.New("the value of Heartbeat must be less than 50%% of expiry")
+		return fmt.Errorf("%w: the value of Heartbeat must be less than 50%% of expiry", ErrInvalidOption)
 	}
 	return nil
 }
